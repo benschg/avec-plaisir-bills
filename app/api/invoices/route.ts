@@ -5,42 +5,64 @@ import type { TablesInsert } from "@/lib/database.types";
 // Save an extracted invoice (normalized across tables)
 export async function POST(request: NextRequest) {
   try {
-    const { fileName, data } = await request.json();
+    const { fileName, data, fileBase64 } = await request.json();
 
-    // 1. Insert vendor
-    const vendorRow: TablesInsert<"vendors"> = {
-      name: data.vendor.name,
-      address: data.vendor.address,
-      tax_id: data.vendor.tax_id || null,
-      email: data.vendor.email || null,
-      phone: data.vendor.phone || null,
-    };
-
-    const { data: vendor, error: vendorErr } = await supabase
+    // 1. Upsert vendor (reuse existing by name+address)
+    const { data: existingVendor } = await supabase
       .from("vendors")
-      .insert(vendorRow)
       .select("id")
-      .single();
+      .eq("name", data.vendor.name)
+      .eq("address", data.vendor.address)
+      .maybeSingle();
 
-    if (vendorErr) {
-      return NextResponse.json({ success: false, error: `Vendor: ${vendorErr.message}` }, { status: 500 });
+    let vendorId: string;
+    if (existingVendor) {
+      vendorId = existingVendor.id;
+    } else {
+      const vendorRow: TablesInsert<"vendors"> = {
+        name: data.vendor.name,
+        address: data.vendor.address,
+        tax_id: data.vendor.tax_id || null,
+        email: data.vendor.email || null,
+        phone: data.vendor.phone || null,
+      };
+      const { data: vendor, error: vendorErr } = await supabase
+        .from("vendors")
+        .insert(vendorRow)
+        .select("id")
+        .single();
+      if (vendorErr) {
+        return NextResponse.json({ success: false, error: `Vendor: ${vendorErr.message}` }, { status: 500 });
+      }
+      vendorId = vendor.id;
     }
 
-    // 2. Insert customer
-    const customerRow: TablesInsert<"customers"> = {
-      name: data.customer.name,
-      address: data.customer.address,
-      tax_id: data.customer.tax_id || null,
-    };
-
-    const { data: customer, error: customerErr } = await supabase
+    // 2. Upsert customer (reuse existing by name+address)
+    const { data: existingCustomer } = await supabase
       .from("customers")
-      .insert(customerRow)
       .select("id")
-      .single();
+      .eq("name", data.customer.name)
+      .eq("address", data.customer.address)
+      .maybeSingle();
 
-    if (customerErr) {
-      return NextResponse.json({ success: false, error: `Customer: ${customerErr.message}` }, { status: 500 });
+    let customerId: string;
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+    } else {
+      const customerRow: TablesInsert<"customers"> = {
+        name: data.customer.name,
+        address: data.customer.address,
+        tax_id: data.customer.tax_id || null,
+      };
+      const { data: customer, error: customerErr } = await supabase
+        .from("customers")
+        .insert(customerRow)
+        .select("id")
+        .single();
+      if (customerErr) {
+        return NextResponse.json({ success: false, error: `Customer: ${customerErr.message}` }, { status: 500 });
+      }
+      customerId = customer.id;
     }
 
     // 3. Insert invoice
@@ -50,8 +72,8 @@ export async function POST(request: NextRequest) {
       invoice_date: data.invoice_date || null,
       due_date: data.due_date || null,
       currency: data.currency,
-      vendor_id: vendor.id,
-      customer_id: customer.id,
+      vendor_id: vendorId,
+      customer_id: customerId,
       subtotal: data.subtotal,
       tax_amount: data.tax_amount,
       total: data.total,
@@ -69,8 +91,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: `Invoice: ${invoiceErr.message}` }, { status: 500 });
     }
 
-    // 4. Insert line items
-    if (data.line_items?.length > 0) {
+    // 4. Upload original PDF to Supabase Storage
+    if (fileBase64) {
+      const filePath = `${invoice.id}/${fileName}`;
+      const buffer = Buffer.from(fileBase64, "base64");
+
+      const { error: uploadErr } = await supabase.storage
+        .from("invoices")
+        .upload(filePath, buffer, { contentType: "application/pdf", upsert: false });
+
+      if (!uploadErr) {
+        await supabase
+          .from("invoices")
+          .update({ file_path: filePath })
+          .eq("id", invoice.id);
+      }
+    }
+
+    // 5. Insert line items
+    if (data.line_items && data.line_items.length > 0) {
       const lineItems: TablesInsert<"line_items">[] = data.line_items.map(
         (
           item: {
@@ -80,6 +119,7 @@ export async function POST(request: NextRequest) {
             unit_price: number;
             tax_rate?: number;
             line_total: number;
+            image_search_query?: string;
           },
           index: number
         ) => ({
@@ -90,6 +130,7 @@ export async function POST(request: NextRequest) {
           unit_price: item.unit_price,
           tax_rate: item.tax_rate ?? null,
           line_total: item.line_total,
+          image_search_query: item.image_search_query ?? null,
         })
       );
 
@@ -100,7 +141,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Insert payment info (if present)
+    // 6. Insert payment info (if present)
     if (data.payment_info) {
       const pi = data.payment_info;
       if (pi.iban || pi.swift || pi.bank_name || pi.terms) {

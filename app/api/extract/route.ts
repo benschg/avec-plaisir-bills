@@ -47,7 +47,8 @@ Return a JSON object with EXACTLY this structure:
       "quantity": "number",
       "unit_price": "number - price per unit",
       "tax_rate": "number - tax percentage e.g. 19 for 19% (optional)",
-      "line_total": "number - total for this line"
+      "line_total": "number - total for this line",
+      "image_search_query": "string - optimized Google Image search query to find this product (max 8 words, include brand if known, strip invoice jargon)"
     }
   ],
   "subtotal": "number - subtotal before tax",

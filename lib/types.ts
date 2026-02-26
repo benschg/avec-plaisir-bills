@@ -19,6 +19,7 @@ export interface LineItem {
   unit_price: number;
   tax_rate?: number;
   line_total: number;
+  image_search_query?: string;
 }
 
 export interface PaymentInfo {

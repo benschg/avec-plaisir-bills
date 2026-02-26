@@ -37,6 +37,7 @@ create table public.invoices (
   total numeric(12,2) not null default 0,
   notes text,
   raw_extraction jsonb not null, -- full AI response for reference
+  file_path text, -- Supabase Storage path for original PDF
   created_at timestamptz default now() not null
 );
 
@@ -54,7 +55,8 @@ create table public.line_items (
   quantity numeric(12,4) not null default 0,
   unit_price numeric(12,4) not null default 0,
   tax_rate numeric(5,2),
-  line_total numeric(12,2) not null default 0
+  line_total numeric(12,2) not null default 0,
+  image_search_query text
 );
 
 create index idx_line_items_invoice_id on public.line_items (invoice_id);

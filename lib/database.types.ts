@@ -65,6 +65,7 @@ export type Database = {
           customer_id: string
           due_date: string | null
           file_name: string
+          file_path: string | null
           id: string
           invoice_date: string | null
           invoice_number: string
@@ -81,6 +82,7 @@ export type Database = {
           customer_id: string
           due_date?: string | null
           file_name: string
+          file_path?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number: string
@@ -97,6 +99,7 @@ export type Database = {
           customer_id?: string
           due_date?: string | null
           file_name?: string
+          file_path?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number?: string
@@ -128,6 +131,7 @@ export type Database = {
         Row: {
           description: string
           id: string
+          image_search_query: string | null
           invoice_id: string
           line_total: number
           position: number | null
@@ -138,6 +142,7 @@ export type Database = {
         Insert: {
           description: string
           id?: string
+          image_search_query?: string | null
           invoice_id: string
           line_total?: number
           position?: number | null
@@ -148,6 +153,7 @@ export type Database = {
         Update: {
           description?: string
           id?: string
+          image_search_query?: string | null
           invoice_id?: string
           line_total?: number
           position?: number | null
