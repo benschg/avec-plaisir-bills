@@ -1,0 +1,107 @@
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import type { InvoiceData } from "@/lib/types";
+
+interface InvoiceDetailsProps {
+  data: InvoiceData;
+}
+
+function InfoRow({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-right max-w-[60%]">{value}</span>
+    </div>
+  );
+}
+
+export function InvoiceDetails({ data }: InvoiceDetailsProps) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Invoice Info</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <InfoRow label="Invoice #" value={data.invoice_number} />
+          <InfoRow label="Date" value={data.invoice_date} />
+          <InfoRow label="Due Date" value={data.due_date} />
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Currency</span>
+            <Badge variant="secondary">{data.currency}</Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Vendor</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <InfoRow label="Name" value={data.vendor.name} />
+          <InfoRow label="Address" value={data.vendor.address} />
+          <InfoRow label="Tax ID" value={data.vendor.tax_id} />
+          <InfoRow label="Email" value={data.vendor.email} />
+          <InfoRow label="Phone" value={data.vendor.phone} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Customer</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <InfoRow label="Name" value={data.customer.name} />
+          <InfoRow label="Address" value={data.customer.address} />
+          <InfoRow label="Tax ID" value={data.customer.tax_id} />
+        </CardContent>
+      </Card>
+
+      {data.payment_info && (
+        <Card className="md:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Payment Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <InfoRow label="IBAN" value={data.payment_info.iban} />
+            <InfoRow label="SWIFT/BIC" value={data.payment_info.swift} />
+            <InfoRow label="Bank" value={data.payment_info.bank_name} />
+            <InfoRow label="Terms" value={data.payment_info.terms} />
+          </CardContent>
+        </Card>
+      )}
+
+      {data.notes && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{data.notes}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className={data.payment_info || data.notes ? "" : "md:col-span-3"}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Totals</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <InfoRow label="Subtotal" value={`${data.subtotal.toFixed(2)} ${data.currency}`} />
+          <InfoRow label="Tax" value={`${data.tax_amount.toFixed(2)} ${data.currency}`} />
+          <Separator />
+          <div className="flex justify-between text-sm font-bold">
+            <span>Total</span>
+            <span>
+              {data.total.toFixed(2)} {data.currency}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
