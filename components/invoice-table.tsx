@@ -458,7 +458,7 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <TableCell />
               </TableRow>
               <TableRow className="font-bold">
-                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Total ({sellSign})</TableCell>
+                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Total</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
                 <TableCell />
                 <TableCell className="text-right">{fmt(data.total, sign)}</TableCell>
