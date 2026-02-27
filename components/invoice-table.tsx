@@ -77,6 +77,10 @@ function fmt(value: number, sign: string): string {
 
 export function InvoiceTable({ data }: InvoiceTableProps) {
   const sign = currencySign(data.currency);
+  const sellSign = currencySign("CHF");
+  const needsConversion = data.currency !== "CHF";
+  const [exchangeRate, setExchangeRate] = useState(1.0);
+  const rate = needsConversion ? exchangeRate : 1;
   const [globalMargin, setGlobalMargin] = useState(0);
   const [globalMwst, setGlobalMwst] = useState(DEFAULT_MWST);
   const [itemMargins, setItemMargins] = useState<Record<number, number | null>>({});
@@ -226,6 +230,22 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 </SelectContent>
               </Select>
             </div>
+            {needsConversion && (
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{data.currency}→CHF</span>
+                <Input
+                  type="number"
+                  value={exchangeRate}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v) && v > 0) setExchangeRate(v);
+                  }}
+                  className="w-20 h-7 text-right text-sm"
+                  min={0.0001}
+                  step={0.01}
+                />
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -360,19 +380,19 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                       )}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : fmt(calc.sellPrice, sign)}
+                      {isExpense ? "--" : fmt(calc.sellPrice * rate, sellSign)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : fmt(calc.sellPriceInclMwst, sign)}
+                      {isExpense ? "--" : fmt(calc.sellPriceInclMwst * rate, sellSign)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : fmt(calc.sellTotal, sign)}
+                      {isExpense ? "--" : fmt(calc.sellTotal * rate, sellSign)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : fmt(calc.sellTotalInclMwst, sign)}
+                      {isExpense ? "--" : fmt(calc.sellTotalInclMwst * rate, sellSign)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
-                      {isExpense ? "--" : fmt(calc.profit, sign)}
+                      {isExpense ? "--" : fmt(calc.profit * rate, sellSign)}
                     </TableCell>
                   </TableRow>
                 );
@@ -389,13 +409,13 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 </TableCell>
                 <TableCell colSpan={4} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {fmt(totals.sellExcl, sign)}
+                  {fmt(totals.sellExcl * rate, sellSign)}
                 </TableCell>
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {fmt(totals.sellIncl, sign)}
+                  {fmt(totals.sellIncl * rate, sellSign)}
                 </TableCell>
                 <TableCell className="text-right text-emerald-600 dark:text-emerald-400">
-                  {fmt(totals.profit, sign)}
+                  {fmt(totals.profit * rate, sellSign)}
                 </TableCell>
               </TableRow>
               {expenseDist.totalExpenses > 0 && (
@@ -420,12 +440,12 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <TableCell colSpan={4} />
                 <TableCell />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {fmt(totals.mwst, sign)}
+                  {fmt(totals.mwst * rate, sellSign)}
                 </TableCell>
                 <TableCell />
               </TableRow>
               <TableRow className="font-bold">
-                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Total ({sign})</TableCell>
+                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Total ({sellSign})</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
                 <TableCell />
                 <TableCell className="text-right">{fmt(data.total, sign)}</TableCell>
@@ -434,13 +454,13 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 </TableCell>
                 <TableCell colSpan={4} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {fmt(totals.sellExcl, sign)}
+                  {fmt(totals.sellExcl * rate, sellSign)}
                 </TableCell>
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {fmt(totals.sellIncl, sign)}
+                  {fmt(totals.sellIncl * rate, sellSign)}
                 </TableCell>
                 <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
-                  {fmt(totals.profit, sign)}
+                  {fmt(totals.profit * rate, sellSign)}
                 </TableCell>
               </TableRow>
             </TableFooter>
