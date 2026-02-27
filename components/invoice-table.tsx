@@ -60,7 +60,23 @@ function SearchImageButton({ query, fallback }: { query?: string; fallback: stri
   );
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  EUR: "€", USD: "$", GBP: "£", CHF: "CHF", JPY: "¥", CNY: "¥",
+  KRW: "₩", INR: "₹", RUB: "₽", TRY: "₺", PLN: "zł", SEK: "kr",
+  NOK: "kr", DKK: "kr", CZK: "Kč", HUF: "Ft", BRL: "R$", CAD: "C$",
+  AUD: "A$", NZD: "NZ$", MXN: "MX$", ZAR: "R", THB: "฿",
+};
+
+function currencySign(code: string): string {
+  return CURRENCY_SYMBOLS[code] ?? code;
+}
+
+function fmt(value: number, sign: string): string {
+  return `${sign} ${value.toFixed(2)}`;
+}
+
 export function InvoiceTable({ data }: InvoiceTableProps) {
+  const sign = currencySign(data.currency);
   const [globalMargin, setGlobalMargin] = useState(0);
   const [globalMwst, setGlobalMwst] = useState(DEFAULT_MWST);
   const [itemMargins, setItemMargins] = useState<Record<number, number | null>>({});
@@ -167,7 +183,7 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
           <div className="flex items-center gap-4">
             {expenseDist.totalExpenses > 0 && (
               <span className="text-sm text-muted-foreground whitespace-nowrap">
-                Expenses: <span className="font-medium text-amber-600 dark:text-amber-400">{expenseDist.totalExpenses.toFixed(2)}</span>
+                Expenses: <span className="font-medium text-amber-600 dark:text-amber-400">{fmt(expenseDist.totalExpenses, sign)}</span>
               </span>
             )}
             <div className="flex items-center gap-3">
@@ -241,7 +257,7 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <TableHead className="text-right w-28">Adj. Total</TableHead>
                 <TableHead className="text-right w-20">Margin %</TableHead>
                 <TableHead className="text-right w-20">MWST</TableHead>
-                <TableHead className="text-right w-28">Sell Price</TableHead>
+                <TableHead className="text-right w-28">Sell</TableHead>
                 <TableHead className="text-right w-28">Sell incl.</TableHead>
                 <TableHead className="text-right w-28">Sell Total</TableHead>
                 <TableHead className="text-right w-28">Total incl.</TableHead>
@@ -279,7 +295,7 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">{item.unit_price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{fmt(item.unit_price, sign)}</TableCell>
                     {hasTaxRate && (
                       <TableCell className="text-right">
                         {item.tax_rate != null ? `${item.tax_rate}%` : "-"}
@@ -290,19 +306,19 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                         <span className="text-muted-foreground">--</span>
                       ) : (
                         <span className="font-medium text-orange-600 dark:text-orange-400">
-                          {expenseDist.adjustedUnitPriceByIndex[index].toFixed(2)}
+                          {fmt(expenseDist.adjustedUnitPriceByIndex[index], sign)}
                         </span>
                       )}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {item.line_total.toFixed(2)}
+                      {fmt(item.line_total, sign)}
                     </TableCell>
                     <TableCell className="text-right">
                       {isExpense ? (
                         <span className="text-muted-foreground">--</span>
                       ) : (
                         <span className="font-medium text-orange-600 dark:text-orange-400">
-                          {(expenseDist.adjustedUnitPriceByIndex[index] * item.quantity).toFixed(2)}
+                          {fmt(expenseDist.adjustedUnitPriceByIndex[index] * item.quantity, sign)}
                         </span>
                       )}
                     </TableCell>
@@ -344,19 +360,19 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                       )}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : calc.sellPrice.toFixed(2)}
+                      {isExpense ? "--" : fmt(calc.sellPrice, sign)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : calc.sellPriceInclMwst.toFixed(2)}
+                      {isExpense ? "--" : fmt(calc.sellPriceInclMwst, sign)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : calc.sellTotal.toFixed(2)}
+                      {isExpense ? "--" : fmt(calc.sellTotal, sign)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : calc.sellTotalInclMwst.toFixed(2)}
+                      {isExpense ? "--" : fmt(calc.sellTotalInclMwst, sign)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
-                      {isExpense ? "--" : calc.profit.toFixed(2)}
+                      {isExpense ? "--" : fmt(calc.profit, sign)}
                     </TableCell>
                   </TableRow>
                 );
@@ -367,19 +383,19 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Subtotal</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
                 <TableCell />
-                <TableCell className="text-right">{data.subtotal.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{fmt(data.subtotal, sign)}</TableCell>
                 <TableCell className="text-right text-orange-600 dark:text-orange-400">
-                  {adjustedTotalSum.toFixed(2)}
+                  {fmt(adjustedTotalSum, sign)}
                 </TableCell>
                 <TableCell colSpan={4} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {totals.sellExcl.toFixed(2)}
+                  {fmt(totals.sellExcl, sign)}
                 </TableCell>
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {totals.sellIncl.toFixed(2)}
+                  {fmt(totals.sellIncl, sign)}
                 </TableCell>
                 <TableCell className="text-right text-emerald-600 dark:text-emerald-400">
-                  {totals.profit.toFixed(2)}
+                  {fmt(totals.profit, sign)}
                 </TableCell>
               </TableRow>
               {expenseDist.totalExpenses > 0 && (
@@ -390,7 +406,7 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                   <TableCell colSpan={gapAfterDesc} />
                   <TableCell />
                   <TableCell className="text-right text-amber-600 dark:text-amber-400">
-                    {expenseDist.totalExpenses.toFixed(2)}
+                    {fmt(expenseDist.totalExpenses, sign)}
                   </TableCell>
                   <TableCell colSpan={8} />
                 </TableRow>
@@ -399,32 +415,32 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">MWST</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
                 <TableCell />
-                <TableCell className="text-right">{data.tax_amount.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{fmt(data.tax_amount, sign)}</TableCell>
                 <TableCell />
                 <TableCell colSpan={4} />
                 <TableCell />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {totals.mwst.toFixed(2)}
+                  {fmt(totals.mwst, sign)}
                 </TableCell>
                 <TableCell />
               </TableRow>
               <TableRow className="font-bold">
-                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Total ({data.currency})</TableCell>
+                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Total ({sign})</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
                 <TableCell />
-                <TableCell className="text-right">{data.total.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{fmt(data.total, sign)}</TableCell>
                 <TableCell className="text-right font-bold text-orange-600 dark:text-orange-400">
-                  {adjustedTotalSum.toFixed(2)}
+                  {fmt(adjustedTotalSum, sign)}
                 </TableCell>
                 <TableCell colSpan={4} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {totals.sellExcl.toFixed(2)}
+                  {fmt(totals.sellExcl, sign)}
                 </TableCell>
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {totals.sellIncl.toFixed(2)}
+                  {fmt(totals.sellIncl, sign)}
                 </TableCell>
                 <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
-                  {totals.profit.toFixed(2)}
+                  {fmt(totals.profit, sign)}
                 </TableCell>
               </TableRow>
             </TableFooter>
