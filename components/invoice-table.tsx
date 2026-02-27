@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -27,6 +28,7 @@ import {
   DEFAULT_MWST,
   calcLineItem,
   calcInvoiceTotals,
+  calcExpenseDistribution,
   resolveMargin,
   resolveMwst,
 } from "@/lib/pricing";
@@ -63,18 +65,40 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
   const [globalMwst, setGlobalMwst] = useState(DEFAULT_MWST);
   const [itemMargins, setItemMargins] = useState<Record<number, number | null>>({});
   const [itemMwst, setItemMwst] = useState<Record<number, string | null>>({});
+  const [expenseFlags, setExpenseFlags] = useState<boolean[]>(
+    data.line_items.map((item) => item.is_expense ?? false)
+  );
 
   const hasTaxRate = data.line_items.some((item) => item.tax_rate != null);
   const hasPosition = data.line_items.some((item) => item.position != null);
-  const labelColSpan = (hasPosition ? 1 : 0) + 1 + 1 + 1 + 1 + (hasTaxRate ? 1 : 0);
+  // Label columns: [#] + Exp. + img + Description + Qty + Unit Price + [Tax %]
+  const labelColSpan = (hasPosition ? 1 : 0) + 1 + 1 + 1 + 1 + 1 + (hasTaxRate ? 1 : 0);
+
+  const expenseDist = calcExpenseDistribution(data.line_items, expenseFlags);
 
   const lineCalcs = data.line_items.map((item, i) => {
+    if (expenseFlags[i]) {
+      return calcLineItem(item, 0, 0);
+    }
     const margin = resolveMargin(i, itemMargins, globalMargin);
     const mwstRate = resolveMwst(i, itemMwst, globalMwst);
-    return calcLineItem(item, margin, mwstRate);
+    return calcLineItem(item, margin, mwstRate, expenseDist.adjustedUnitPriceByIndex[i]);
   });
 
-  const totals = calcInvoiceTotals(lineCalcs);
+  const totals = calcInvoiceTotals(lineCalcs, expenseFlags);
+
+  const adjustedTotalSum = data.line_items.reduce((sum, item, i) => {
+    if (expenseFlags[i]) return sum;
+    return sum + expenseDist.adjustedUnitPriceByIndex[i] * item.quantity;
+  }, 0);
+
+  const handleExpenseToggle = (index: number) => {
+    setExpenseFlags((prev) => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  };
 
   const handleItemMarginChange = (index: number, value: string) => {
     if (value === "") {
@@ -109,6 +133,11 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
         <div className="flex items-center justify-between gap-4">
           <CardTitle className="text-base">Line Items</CardTitle>
           <div className="flex items-center gap-4">
+            {expenseDist.totalExpenses > 0 && (
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                Expenses: <span className="font-medium text-amber-600 dark:text-amber-400">{expenseDist.totalExpenses.toFixed(2)}</span>
+              </span>
+            )}
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground whitespace-nowrap">Margin</span>
               <Slider
@@ -158,12 +187,15 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
             <TableHeader>
               <TableRow>
                 {hasPosition && <TableHead className="w-16">#</TableHead>}
+                <TableHead className="w-10 text-center">Exp.</TableHead>
                 <TableHead className="w-10" />
                 <TableHead>Description</TableHead>
                 <TableHead className="text-right w-20">Qty</TableHead>
                 <TableHead className="text-right w-28">Unit Price</TableHead>
                 {hasTaxRate && <TableHead className="text-right w-20">Tax %</TableHead>}
+                <TableHead className="text-right w-28">Adjusted</TableHead>
                 <TableHead className="text-right w-28">Total</TableHead>
+                <TableHead className="text-right w-28">Adj. Total</TableHead>
                 <TableHead className="text-right w-20">Margin %</TableHead>
                 <TableHead className="text-right w-20">MWST</TableHead>
                 <TableHead className="text-right w-28">Sell Price</TableHead>
@@ -176,14 +208,24 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
             <TableBody>
               {data.line_items.map((item, index) => {
                 const calc = lineCalcs[index];
+                const isExpense = expenseFlags[index];
                 const hasMarginOverride = itemMargins[index] != null;
                 const hasMwstOverride = itemMwst[index] != null;
 
                 return (
-                  <TableRow key={index}>
+                  <TableRow
+                    key={index}
+                    className={isExpense ? "bg-amber-50 dark:bg-amber-950/30" : ""}
+                  >
                     {hasPosition && (
                       <TableCell className="text-muted-foreground">{item.position}</TableCell>
                     )}
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={isExpense}
+                        onCheckedChange={() => handleExpenseToggle(index)}
+                      />
+                    </TableCell>
                     <TableCell>
                       <SearchImageButton query={item.image_search_query} fallback={item.description} />
                     </TableCell>
@@ -195,52 +237,78 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                         {item.tax_rate != null ? `${item.tax_rate}%` : "-"}
                       </TableCell>
                     )}
+                    <TableCell className="text-right">
+                      {isExpense ? (
+                        <span className="text-muted-foreground">--</span>
+                      ) : (
+                        <span className="font-medium text-orange-600 dark:text-orange-400">
+                          {expenseDist.adjustedUnitPriceByIndex[index].toFixed(2)}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right font-medium">
                       {item.line_total.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Input
-                        type="number"
-                        value={hasMarginOverride ? itemMargins[index]! : ""}
-                        placeholder={String(globalMargin)}
-                        onChange={(e) => handleItemMarginChange(index, e.target.value)}
-                        className="w-16 h-7 text-right text-sm ml-auto"
-                        min={0}
-                        max={999}
-                      />
+                      {isExpense ? (
+                        <span className="text-muted-foreground">--</span>
+                      ) : (
+                        <span className="font-medium text-orange-600 dark:text-orange-400">
+                          {(expenseDist.adjustedUnitPriceByIndex[index] * item.quantity).toFixed(2)}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Select
-                        value={hasMwstOverride ? itemMwst[index]! : "_global"}
-                        onValueChange={(v) => handleItemMwstChange(index, v)}
-                      >
-                        <SelectTrigger className="w-20 h-7 text-sm ml-auto">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="_global">{globalMwst}%</SelectItem>
-                          {MWST_RATES.map((rate) => (
-                            <SelectItem key={rate.value} value={rate.value}>
-                              {rate.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {isExpense ? (
+                        <span className="text-muted-foreground">--</span>
+                      ) : (
+                        <Input
+                          type="number"
+                          value={hasMarginOverride ? itemMargins[index]! : ""}
+                          placeholder={String(globalMargin)}
+                          onChange={(e) => handleItemMarginChange(index, e.target.value)}
+                          className="w-16 h-7 text-right text-sm ml-auto"
+                          min={0}
+                          max={999}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {isExpense ? (
+                        <span className="text-muted-foreground">--</span>
+                      ) : (
+                        <Select
+                          value={hasMwstOverride ? itemMwst[index]! : "_global"}
+                          onValueChange={(v) => handleItemMwstChange(index, v)}
+                        >
+                          <SelectTrigger className="w-20 h-7 text-sm ml-auto">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="_global">{globalMwst}%</SelectItem>
+                            {MWST_RATES.map((rate) => (
+                              <SelectItem key={rate.value} value={rate.value}>
+                                {rate.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {calc.sellPrice.toFixed(2)}
+                      {isExpense ? "--" : calc.sellPrice.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {calc.sellPriceInclMwst.toFixed(2)}
+                      {isExpense ? "--" : calc.sellPriceInclMwst.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {calc.sellTotal.toFixed(2)}
+                      {isExpense ? "--" : calc.sellTotal.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {calc.sellTotalInclMwst.toFixed(2)}
+                      {isExpense ? "--" : calc.sellTotalInclMwst.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
-                      {calc.profit.toFixed(2)}
+                      {isExpense ? "--" : calc.profit.toFixed(2)}
                     </TableCell>
                   </TableRow>
                 );
@@ -249,7 +317,11 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={labelColSpan}>Subtotal</TableCell>
+                <TableCell />
                 <TableCell className="text-right">{data.subtotal.toFixed(2)}</TableCell>
+                <TableCell className="text-right text-orange-600 dark:text-orange-400">
+                  {adjustedTotalSum.toFixed(2)}
+                </TableCell>
                 <TableCell colSpan={4} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
                   {totals.sellExcl.toFixed(2)}
@@ -261,9 +333,23 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                   {totals.profit.toFixed(2)}
                 </TableCell>
               </TableRow>
+              {expenseDist.totalExpenses > 0 && (
+                <TableRow>
+                  <TableCell colSpan={labelColSpan} className="text-amber-600 dark:text-amber-400">
+                    Expenses (distributed)
+                  </TableCell>
+                  <TableCell />
+                  <TableCell className="text-right text-amber-600 dark:text-amber-400">
+                    {expenseDist.totalExpenses.toFixed(2)}
+                  </TableCell>
+                  <TableCell colSpan={8} />
+                </TableRow>
+              )}
               <TableRow>
                 <TableCell colSpan={labelColSpan}>MWST</TableCell>
+                <TableCell />
                 <TableCell className="text-right">{data.tax_amount.toFixed(2)}</TableCell>
+                <TableCell />
                 <TableCell colSpan={4} />
                 <TableCell />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
@@ -273,7 +359,11 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
               </TableRow>
               <TableRow className="font-bold">
                 <TableCell colSpan={labelColSpan}>Total ({data.currency})</TableCell>
+                <TableCell />
                 <TableCell className="text-right">{data.total.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-bold text-orange-600 dark:text-orange-400">
+                  {adjustedTotalSum.toFixed(2)}
+                </TableCell>
                 <TableCell colSpan={4} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
                   {totals.sellExcl.toFixed(2)}

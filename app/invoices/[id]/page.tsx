@@ -44,6 +44,7 @@ function toInvoiceData(inv: FullInvoice): InvoiceData {
       tax_rate: li.tax_rate ?? undefined,
       line_total: li.line_total,
       image_search_query: li.image_search_query ?? undefined,
+      is_expense: li.is_expense ?? false,
     })),
     subtotal: inv.subtotal,
     tax_amount: inv.tax_amount,

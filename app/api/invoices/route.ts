@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
             tax_rate?: number;
             line_total: number;
             image_search_query?: string;
+            is_expense?: boolean;
           },
           index: number
         ) => ({
@@ -131,6 +132,7 @@ export async function POST(request: NextRequest) {
           tax_rate: item.tax_rate ?? null,
           line_total: item.line_total,
           image_search_query: item.image_search_query ?? null,
+          is_expense: item.is_expense ?? false,
         })
       );
 

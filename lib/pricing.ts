@@ -14,6 +14,75 @@ export const MWST_RATES = [
 export const DEFAULT_MWST = "8.1";
 
 // ---------------------------------------------------------------------------
+// Expense distribution
+// ---------------------------------------------------------------------------
+
+export interface ExpenseDistribution {
+  /** Total value of all expense line items. */
+  totalExpenses: number;
+  /** Total value (line_total sum) of all product (non-expense) items. */
+  totalProductValue: number;
+  /** Adjusted unit price per item index: unit_price + distributed expense per unit.
+   *  For expense items the value equals the original unit_price (unused). */
+  adjustedUnitPriceByIndex: number[];
+}
+
+/**
+ * Distribute total expenses proportionally across product items based on
+ * each product's `line_total` relative to the total product value.
+ *
+ * Formula per product item:
+ *   expense_share   = (item.line_total / total_product_value) × total_expenses
+ *   expense_per_unit = expense_share / item.quantity
+ *   adjusted_price   = item.unit_price + expense_per_unit
+ *
+ * Edge cases:
+ * - No expenses → adjusted prices equal unit prices (transparent no-op).
+ * - All items are expenses → no products to distribute to; shares stay 0.
+ * - All product line_totals are 0 → expenses split equally across products.
+ * - An item has quantity 0 → expense_per_unit is 0 for that item.
+ */
+export function calcExpenseDistribution(
+  items: LineItem[],
+  expenseFlags: boolean[]
+): ExpenseDistribution {
+  let totalExpenses = 0;
+  let totalProductValue = 0;
+  const productIndices: number[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    if (expenseFlags[i]) {
+      totalExpenses += items[i].line_total;
+    } else {
+      totalProductValue += items[i].line_total;
+      productIndices.push(i);
+    }
+  }
+
+  const adjustedUnitPriceByIndex = items.map((item) => item.unit_price);
+
+  if (totalExpenses > 0 && productIndices.length > 0) {
+    if (totalProductValue > 0) {
+      for (const idx of productIndices) {
+        const item = items[idx];
+        const share = (item.line_total / totalProductValue) * totalExpenses;
+        const perUnit = item.quantity > 0 ? share / item.quantity : 0;
+        adjustedUnitPriceByIndex[idx] = item.unit_price + perUnit;
+      }
+    } else {
+      const equalShare = totalExpenses / productIndices.length;
+      for (const idx of productIndices) {
+        const item = items[idx];
+        const perUnit = item.quantity > 0 ? equalShare / item.quantity : 0;
+        adjustedUnitPriceByIndex[idx] = item.unit_price + perUnit;
+      }
+    }
+  }
+
+  return { totalExpenses, totalProductValue, adjustedUnitPriceByIndex };
+}
+
+// ---------------------------------------------------------------------------
 // Per-line-item pricing calculations
 // ---------------------------------------------------------------------------
 
@@ -53,16 +122,21 @@ export function calcSellPrice(unitPrice: number, margin: number): number {
 /**
  * Compute all derived pricing values for a single line item.
  *
- * @param item      The original line item from the invoice (purchase side).
- * @param margin    Effective margin % for this item.
- * @param mwstRate  Effective MWST rate % for this item.
+ * @param item              The original line item from the invoice (purchase side).
+ * @param margin            Effective margin % for this item.
+ * @param mwstRate          Effective MWST rate % for this item.
+ * @param adjustedUnitPrice Optional cost base after expense distribution.
+ *                          If provided, sell price is based on this instead of item.unit_price.
+ *                          Profit is still computed against the original item.line_total.
  */
 export function calcLineItem(
   item: LineItem,
   margin: number,
-  mwstRate: number
+  mwstRate: number,
+  adjustedUnitPrice?: number
 ): LineItemCalc {
-  const sellPrice = calcSellPrice(item.unit_price, margin);
+  const costPrice = adjustedUnitPrice ?? item.unit_price;
+  const sellPrice = calcSellPrice(costPrice, margin);
   const sellPriceInclMwst = sellPrice * (1 + mwstRate / 100);
   const sellTotal = item.quantity * sellPrice;
   const sellTotalInclMwst = item.quantity * sellPriceInclMwst;
@@ -98,17 +172,26 @@ export interface InvoiceTotals {
 
 /**
  * Aggregate totals across all line items.
+ * When expenseFlags is provided, expense items are excluded from the totals
+ * (their cost is already absorbed into the adjusted prices of product items).
  *
- * @param lineCalcs  Array of per-line calculation results.
+ * @param lineCalcs    Array of per-line calculation results.
+ * @param expenseFlags Optional boolean array; true = expense (excluded from totals).
  */
-export function calcInvoiceTotals(lineCalcs: LineItemCalc[]): InvoiceTotals {
+export function calcInvoiceTotals(
+  lineCalcs: LineItemCalc[],
+  expenseFlags?: boolean[]
+): InvoiceTotals {
   return lineCalcs.reduce(
-    (acc, c) => ({
-      sellExcl: acc.sellExcl + c.sellTotal,
-      mwst: acc.mwst + c.mwstAmount,
-      sellIncl: acc.sellIncl + c.sellTotalInclMwst,
-      profit: acc.profit + c.profit,
-    }),
+    (acc, c, i) => {
+      if (expenseFlags?.[i]) return acc;
+      return {
+        sellExcl: acc.sellExcl + c.sellTotal,
+        mwst: acc.mwst + c.mwstAmount,
+        sellIncl: acc.sellIncl + c.sellTotalInclMwst,
+        profit: acc.profit + c.profit,
+      };
+    },
     { sellExcl: 0, mwst: 0, sellIncl: 0, profit: 0 }
   );
 }

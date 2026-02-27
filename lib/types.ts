@@ -20,6 +20,7 @@ export interface LineItem {
   tax_rate?: number;
   line_total: number;
   image_search_query?: string;
+  is_expense?: boolean;
 }
 
 export interface PaymentInfo {

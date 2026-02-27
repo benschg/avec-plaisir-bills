@@ -48,7 +48,8 @@ Return a JSON object with EXACTLY this structure:
       "unit_price": "number - price per unit",
       "tax_rate": "number - tax percentage e.g. 19 for 19% (optional)",
       "line_total": "number - total for this line",
-      "image_search_query": "string - optimized Google Image search query to find this product (max 8 words, include brand if known, strip invoice jargon)"
+      "image_search_query": "string - optimized Google Image search query to find this product (max 8 words, include brand if known, strip invoice jargon)",
+      "is_expense": "boolean - true if this is a shipping/freight/customs/handling/insurance/packaging/delivery cost, false for actual products or services (default false)"
     }
   ],
   "subtotal": "number - subtotal before tax",
@@ -71,6 +72,7 @@ Important rules:
 - For tax rates, use the percentage number (e.g., 19 for 19%)
 - Ensure numerical values are numbers, not strings
 - The invoice may be in German, French, English, or other languages — extract data regardless of language
+- For is_expense: mark shipping, freight, customs duties, handling fees, insurance, packaging fees, delivery charges, and similar non-product costs as true. Regular products and services should be false. When in doubt, mark as false.
 
 File: ${fileName}`;
 

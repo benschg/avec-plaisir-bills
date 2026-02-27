@@ -133,6 +133,7 @@ export type Database = {
           id: string
           image_search_query: string | null
           invoice_id: string
+          is_expense: boolean
           line_total: number
           position: number | null
           quantity: number
@@ -144,6 +145,7 @@ export type Database = {
           id?: string
           image_search_query?: string | null
           invoice_id: string
+          is_expense?: boolean
           line_total?: number
           position?: number | null
           quantity?: number
@@ -155,6 +157,7 @@ export type Database = {
           id?: string
           image_search_query?: string | null
           invoice_id?: string
+          is_expense?: boolean
           line_total?: number
           position?: number | null
           quantity?: number
