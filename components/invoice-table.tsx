@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Table,
   TableBody,
@@ -68,11 +68,43 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
   const [expenseFlags, setExpenseFlags] = useState<boolean[]>(
     data.line_items.map((item) => item.is_expense ?? false)
   );
+  const [descWidth, setDescWidth] = useState(288); // w-72 = 18rem = 288px
+
+  const resizing = useRef(false);
+  const startX = useRef(0);
+  const startW = useRef(0);
+
+  const onResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    resizing.current = true;
+    startX.current = e.clientX;
+    startW.current = descWidth;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!resizing.current) return;
+      const delta = ev.clientX - startX.current;
+      setDescWidth(Math.max(120, startW.current + delta));
+    };
+    const onUp = () => {
+      resizing.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [descWidth]);
 
   const hasTaxRate = data.line_items.some((item) => item.tax_rate != null);
   const hasPosition = data.line_items.some((item) => item.position != null);
-  // Label columns: [#] + Exp. + img + Description + Qty + Unit Price + [Tax %]
-  const labelColSpan = (hasPosition ? 1 : 0) + 1 + 1 + 1 + 1 + 1 + (hasTaxRate ? 1 : 0);
+  // Footer: sticky label spans frozen columns only ([#] + Exp + Desc)
+  const stickyColSpan = (hasPosition ? 1 : 0) + 1 + 1;
+  // Remaining label columns after Description (Qty + UnitPrice + [Tax%])
+  const gapAfterDesc = 1 + 1 + (hasTaxRate ? 1 : 0);
+
+  // Sticky column left offsets (rem): #(w-12=3rem), Exp(w-10=2.5rem)
+  const posLeft = "0rem";
+  const expLeft = hasPosition ? "3rem" : "0rem";
+  const descLeft = hasPosition ? "5.5rem" : "2.5rem";
 
   const expenseDist = calcExpenseDistribution(data.line_items, expenseFlags);
 
@@ -182,14 +214,25 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
-          <Table>
+        <div className="rounded-md border overflow-hidden relative">
+          <Table
+            className="table-fixed"
+            containerClassName="frozen-scroll"
+            containerStyle={{ '--frozen-w': `calc(${descLeft} + ${descWidth}px)` } as React.CSSProperties}
+          >
             <TableHeader>
               <TableRow>
-                {hasPosition && <TableHead className="w-16">#</TableHead>}
-                <TableHead className="w-10 text-center">Exp.</TableHead>
-                <TableHead className="w-10" />
-                <TableHead>Description</TableHead>
+                {hasPosition && (
+                  <TableHead className="w-12 sticky z-20 bg-muted" style={{ left: posLeft }}>#</TableHead>
+                )}
+                <TableHead className="w-10 text-center sticky z-20 bg-muted" style={{ left: expLeft }}>Exp.</TableHead>
+                <TableHead className="sticky z-20 bg-muted shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]" style={{ left: descLeft, width: descWidth }}>
+                  Description
+                  <div
+                    onMouseDown={onResizeStart}
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/30 active:bg-primary/50"
+                  />
+                </TableHead>
                 <TableHead className="text-right w-20">Qty</TableHead>
                 <TableHead className="text-right w-28">Unit Price</TableHead>
                 {hasTaxRate && <TableHead className="text-right w-20">Tax %</TableHead>}
@@ -211,6 +254,9 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 const isExpense = expenseFlags[index];
                 const hasMarginOverride = itemMargins[index] != null;
                 const hasMwstOverride = itemMwst[index] != null;
+                const stickyBg = isExpense
+                  ? "bg-amber-50 dark:bg-amber-950"
+                  : "bg-background";
 
                 return (
                   <TableRow
@@ -218,18 +264,20 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                     className={isExpense ? "bg-amber-50 dark:bg-amber-950/30" : ""}
                   >
                     {hasPosition && (
-                      <TableCell className="text-muted-foreground">{item.position}</TableCell>
+                      <TableCell className={`text-muted-foreground sticky z-10 ${stickyBg}`} style={{ left: posLeft }}>{item.position}</TableCell>
                     )}
-                    <TableCell className="text-center">
+                    <TableCell className={`text-center sticky z-10 ${stickyBg}`} style={{ left: expLeft }}>
                       <Checkbox
                         checked={isExpense}
                         onCheckedChange={() => handleExpenseToggle(index)}
                       />
                     </TableCell>
-                    <TableCell>
-                      <SearchImageButton query={item.image_search_query} fallback={item.description} />
+                    <TableCell className={`font-medium sticky z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] ${stickyBg}`} style={{ left: descLeft }}>
+                      <div className="flex items-center gap-1 overflow-hidden">
+                        <SearchImageButton query={item.image_search_query} fallback={item.description} />
+                        <span className="truncate" title={item.description}>{item.description}</span>
+                      </div>
                     </TableCell>
-                    <TableCell className="font-medium">{item.description}</TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>
                     <TableCell className="text-right">{item.unit_price.toFixed(2)}</TableCell>
                     {hasTaxRate && (
@@ -316,7 +364,8 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={labelColSpan}>Subtotal</TableCell>
+                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Subtotal</TableCell>
+                <TableCell colSpan={gapAfterDesc} />
                 <TableCell />
                 <TableCell className="text-right">{data.subtotal.toFixed(2)}</TableCell>
                 <TableCell className="text-right text-orange-600 dark:text-orange-400">
@@ -335,9 +384,10 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
               </TableRow>
               {expenseDist.totalExpenses > 0 && (
                 <TableRow>
-                  <TableCell colSpan={labelColSpan} className="text-amber-600 dark:text-amber-400">
+                  <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted text-amber-600 dark:text-amber-400 overflow-hidden truncate">
                     Expenses (distributed)
                   </TableCell>
+                  <TableCell colSpan={gapAfterDesc} />
                   <TableCell />
                   <TableCell className="text-right text-amber-600 dark:text-amber-400">
                     {expenseDist.totalExpenses.toFixed(2)}
@@ -346,7 +396,8 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 </TableRow>
               )}
               <TableRow>
-                <TableCell colSpan={labelColSpan}>MWST</TableCell>
+                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">MWST</TableCell>
+                <TableCell colSpan={gapAfterDesc} />
                 <TableCell />
                 <TableCell className="text-right">{data.tax_amount.toFixed(2)}</TableCell>
                 <TableCell />
@@ -358,7 +409,8 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <TableCell />
               </TableRow>
               <TableRow className="font-bold">
-                <TableCell colSpan={labelColSpan}>Total ({data.currency})</TableCell>
+                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Total ({data.currency})</TableCell>
+                <TableCell colSpan={gapAfterDesc} />
                 <TableCell />
                 <TableCell className="text-right">{data.total.toFixed(2)}</TableCell>
                 <TableCell className="text-right font-bold text-orange-600 dark:text-orange-400">
@@ -377,6 +429,11 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
               </TableRow>
             </TableFooter>
           </Table>
+          {/* Cover scrollbar gutter under frozen columns */}
+          <div
+            className="absolute bottom-0 left-0 bg-background z-30 pointer-events-none"
+            style={{ width: `calc(${descLeft} + ${descWidth}px)`, height: 8 }}
+          />
         </div>
       </CardContent>
     </Card>

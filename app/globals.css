@@ -124,3 +124,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Offset horizontal scrollbar to start after frozen columns */
+.frozen-scroll::-webkit-scrollbar {
+  height: 8px;
+  background: transparent;
+}
+.frozen-scroll::-webkit-scrollbar-track {
+  margin-left: var(--frozen-w, 0px);
+  background: oklch(0.5 0 0 / 8%);
+  border-radius: 4px;
+}
+.frozen-scroll::-webkit-scrollbar-thumb {
+  background: oklch(0.5 0 0 / 30%);
+  border-radius: 4px;
+}
+.frozen-scroll::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0 0 / 50%);
+}
