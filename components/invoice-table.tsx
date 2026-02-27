@@ -244,6 +244,19 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                   min={0.0001}
                   step={0.01}
                 />
+                <span className="text-sm text-muted-foreground whitespace-nowrap ml-2">Total CHF</span>
+                <Input
+                  type="number"
+                  value={parseFloat((totals.sellIncl * exchangeRate).toFixed(2))}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v) && v > 0 && totals.sellIncl > 0) {
+                      setExchangeRate(v / totals.sellIncl);
+                    }
+                  }}
+                  className="w-24 h-7 text-right text-sm"
+                  step={0.01}
+                />
               </div>
             )}
           </div>
