@@ -25,7 +25,7 @@ export function FilePicker({ onFileSelect, selectedFileName }: FilePickerProps) 
   const handleFile = useCallback(
     (file: File) => {
       if (file.type !== "application/pdf") {
-        alert("Please select a PDF file");
+        alert("Bitte wählen Sie eine PDF-Datei aus");
         return;
       }
       const reader = new FileReader();
@@ -57,7 +57,7 @@ export function FilePicker({ onFileSelect, selectedFileName }: FilePickerProps) 
         onFileSelect({ base64: data.file, name: data.fileName });
       }
     } catch {
-      alert("Failed to load example file");
+      alert("Beispieldatei konnte nicht geladen werden");
     } finally {
       setLoadingExample(null);
     }
@@ -94,13 +94,13 @@ export function FilePicker({ onFileSelect, selectedFileName }: FilePickerProps) 
           <p className="text-sm font-medium">
             {selectedFileName ? (
               <>
-                Selected: <span className="text-primary">{selectedFileName}</span>
+                Ausgewählt: <span className="text-primary">{selectedFileName}</span>
               </>
             ) : (
-              "Drop a PDF here or click to browse"
+              "PDF hier ablegen oder klicken zum Durchsuchen"
             )}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">PDF files only</p>
+          <p className="text-xs text-muted-foreground mt-1">Nur PDF-Dateien</p>
           <input
             ref={fileInputRef}
             type="file"
@@ -116,7 +116,7 @@ export function FilePicker({ onFileSelect, selectedFileName }: FilePickerProps) 
 
       {exampleFiles.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Or pick an example invoice:</p>
+          <p className="text-sm font-medium text-muted-foreground">Oder wählen Sie eine Beispielrechnung:</p>
           <div className="flex flex-wrap gap-2">
             {exampleFiles.map((filename) => (
               <Button
@@ -126,7 +126,7 @@ export function FilePicker({ onFileSelect, selectedFileName }: FilePickerProps) 
                 disabled={loadingExample !== null}
                 onClick={() => handleExampleClick(filename)}
               >
-                {loadingExample === filename ? "Loading..." : filename}
+                {loadingExample === filename ? "Laden..." : filename}
               </Button>
             ))}
           </div>

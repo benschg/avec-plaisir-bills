@@ -23,14 +23,14 @@ export function InvoiceDetails({ data }: InvoiceDetailsProps) {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Invoice Info</CardTitle>
+          <CardTitle className="text-base">Rechnungsinfo</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <InfoRow label="Invoice #" value={data.invoice_number} />
-          <InfoRow label="Date" value={data.invoice_date} />
-          <InfoRow label="Due Date" value={data.due_date} />
+          <InfoRow label="Rechnung Nr." value={data.invoice_number} />
+          <InfoRow label="Datum" value={data.invoice_date} />
+          <InfoRow label="Fälligkeitsdatum" value={data.due_date} />
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Currency</span>
+            <span className="text-muted-foreground">Währung</span>
             <Badge variant="secondary">{data.currency}</Badge>
           </div>
         </CardContent>
@@ -38,38 +38,38 @@ export function InvoiceDetails({ data }: InvoiceDetailsProps) {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Vendor</CardTitle>
+          <CardTitle className="text-base">Lieferant</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <InfoRow label="Name" value={data.vendor.name} />
-          <InfoRow label="Address" value={data.vendor.address} />
-          <InfoRow label="Tax ID" value={data.vendor.tax_id} />
-          <InfoRow label="Email" value={data.vendor.email} />
-          <InfoRow label="Phone" value={data.vendor.phone} />
+          <InfoRow label="Adresse" value={data.vendor.address} />
+          <InfoRow label="Steuernummer" value={data.vendor.tax_id} />
+          <InfoRow label="E-Mail" value={data.vendor.email} />
+          <InfoRow label="Telefon" value={data.vendor.phone} />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Customer</CardTitle>
+          <CardTitle className="text-base">Kunde</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <InfoRow label="Name" value={data.customer.name} />
-          <InfoRow label="Address" value={data.customer.address} />
-          <InfoRow label="Tax ID" value={data.customer.tax_id} />
+          <InfoRow label="Adresse" value={data.customer.address} />
+          <InfoRow label="Steuernummer" value={data.customer.tax_id} />
         </CardContent>
       </Card>
 
       {data.payment_info && (
         <Card className="md:col-span-2">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Payment Information</CardTitle>
+            <CardTitle className="text-base">Zahlungsinformationen</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <InfoRow label="IBAN" value={data.payment_info.iban} />
             <InfoRow label="SWIFT/BIC" value={data.payment_info.swift} />
             <InfoRow label="Bank" value={data.payment_info.bank_name} />
-            <InfoRow label="Terms" value={data.payment_info.terms} />
+            <InfoRow label="Zahlungsbedingungen" value={data.payment_info.terms} />
           </CardContent>
         </Card>
       )}
@@ -77,7 +77,7 @@ export function InvoiceDetails({ data }: InvoiceDetailsProps) {
       {data.notes && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Notes</CardTitle>
+            <CardTitle className="text-base">Notizen</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">{data.notes}</p>

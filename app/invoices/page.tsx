@@ -46,28 +46,28 @@ export default function InvoicesPage() {
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Invoices</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Rechnungen</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {invoices.length} saved invoice{invoices.length !== 1 && "s"}
+            {invoices.length} gespeicherte Rechnung{invoices.length !== 1 && "en"}
             {invoices.length > 0 && currencies.length === 1 && (
-              <> &middot; Total: {totalSum.toFixed(2)} {currencies[0]}</>
+              <> &middot; Gesamt: {totalSum.toFixed(2)} {currencies[0]}</>
             )}
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href="/">New Extraction</Link>
+          <Link href="/">Neue Extraktion</Link>
         </Button>
       </div>
 
       <Separator />
 
       {loading ? (
-        <p className="text-sm text-muted-foreground py-8 text-center">Loading...</p>
+        <p className="text-sm text-muted-foreground py-8 text-center">Laden...</p>
       ) : invoices.length === 0 ? (
         <div className="text-center py-16 space-y-3">
-          <p className="text-muted-foreground">No invoices saved yet.</p>
+          <p className="text-muted-foreground">Noch keine Rechnungen gespeichert.</p>
           <Button asChild>
-            <Link href="/">Extract your first invoice</Link>
+            <Link href="/">Erste Rechnung extrahieren</Link>
           </Button>
         </div>
       ) : (
@@ -75,12 +75,12 @@ export default function InvoicesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Saved</TableHead>
+                <TableHead>Rechnung Nr.</TableHead>
+                <TableHead>Lieferant</TableHead>
+                <TableHead>Kunde</TableHead>
+                <TableHead>Datum</TableHead>
+                <TableHead className="text-right">Gesamt</TableHead>
+                <TableHead className="text-right">Gespeichert</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

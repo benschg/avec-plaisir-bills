@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Invoice Data Extractor",
-  description: "Extract structured data from PDF invoices using AI",
+  title: "Rechnungsdaten-Extraktor",
+  description: "Strukturierte Daten aus PDF-Rechnungen mit KI extrahieren",
 };
 
 export default function RootLayout({
@@ -23,15 +23,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="de">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <header className="border-b bg-card">
           <div className="max-w-5xl mx-auto px-4 h-10 flex items-center justify-between text-xs">
             <nav className="flex items-center gap-4">
-              <a href="/" className="font-semibold text-sm hover:text-foreground transition-colors">Invoice Extractor</a>
-              <a href="/invoices" className="text-muted-foreground hover:text-foreground transition-colors">Invoices</a>
+              <a href="/" className="font-semibold text-sm hover:text-foreground transition-colors">Rechnungs-Extraktor</a>
+              <a href="/invoices" className="text-muted-foreground hover:text-foreground transition-colors">Rechnungen</a>
             </nav>
             <nav className="flex items-center gap-4 text-muted-foreground">
               <a href="http://127.0.0.1:54423" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">

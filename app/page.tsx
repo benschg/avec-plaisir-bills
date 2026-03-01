@@ -55,7 +55,7 @@ export default function Home() {
       const extractResult = await extractRes.json();
 
       if (!extractResult.success) {
-        setError(extractResult.error || "Extraction failed");
+        setError(extractResult.error || "Extraktion fehlgeschlagen");
         return;
       }
 
@@ -75,10 +75,10 @@ export default function Home() {
       if (saveResult.success) {
         router.push(`/invoices/${saveResult.data.id}`);
       } else {
-        setError(saveResult.error || "Failed to save invoice");
+        setError(saveResult.error || "Rechnung konnte nicht gespeichert werden");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      setError(err instanceof Error ? err.message : "Netzwerkfehler");
     } finally {
       setLoading(false);
     }
@@ -88,9 +88,9 @@ export default function Home() {
     <main className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Invoice Data Extractor</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Rechnungsdaten-Extraktor</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Upload a PDF invoice and extract structured data using Google Gemini AI
+            PDF-Rechnung hochladen und strukturierte Daten mit Google Gemini KI extrahieren
           </p>
         </div>
 
@@ -124,10 +124,10 @@ export default function Home() {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                 />
               </svg>
-              Extracting & saving...
+              Extrahiere & speichere...
             </span>
           ) : (
-            "Extract Invoice Data"
+            "Rechnungsdaten extrahieren"
           )}
         </Button>
 

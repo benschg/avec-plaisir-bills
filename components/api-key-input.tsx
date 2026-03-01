@@ -16,17 +16,17 @@ export function ApiKeyInput({ apiKey, onApiKeyChange }: ApiKeyInputProps) {
   return (
     <div className="flex items-end gap-3">
       <div className="flex-1 space-y-1.5">
-        <Label htmlFor="api-key">Google Gemini API Key</Label>
+        <Label htmlFor="api-key">Google Gemini API-Schlüssel</Label>
         <Input
           id="api-key"
           type={visible ? "text" : "password"}
-          placeholder="Enter your Gemini API key..."
+          placeholder="Gemini API-Schlüssel eingeben..."
           value={apiKey}
           onChange={(e) => onApiKeyChange(e.target.value)}
         />
       </div>
       <Button variant="outline" size="sm" onClick={() => setVisible(!visible)}>
-        {visible ? "Hide" : "Show"}
+        {visible ? "Verbergen" : "Anzeigen"}
       </Button>
     </div>
   );

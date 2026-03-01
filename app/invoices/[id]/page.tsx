@@ -91,10 +91,10 @@ export default function InvoiceDetailPage() {
             }))
           );
         } else {
-          setError(result.error || "Invoice not found");
+          setError(result.error || "Rechnung nicht gefunden");
         }
       })
-      .catch(() => setError("Failed to load invoice"))
+      .catch(() => setError("Rechnung konnte nicht geladen werden"))
       .finally(() => setLoading(false));
   }, [params.id]);
 
@@ -150,7 +150,7 @@ export default function InvoiceDetailPage() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <p className="text-sm text-muted-foreground text-center py-16">Loading...</p>
+        <p className="text-sm text-muted-foreground text-center py-16">Laden...</p>
       </div>
     );
   }
@@ -159,10 +159,10 @@ export default function InvoiceDetailPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-4">
         <Alert variant="destructive">
-          <AlertDescription>{error || "Invoice not found"}</AlertDescription>
+          <AlertDescription>{error || "Rechnung nicht gefunden"}</AlertDescription>
         </Alert>
         <Button asChild variant="outline">
-          <Link href="/invoices">Back to Invoices</Link>
+          <Link href="/invoices">Zurück zu Rechnungen</Link>
         </Button>
       </div>
     );
@@ -178,22 +178,22 @@ export default function InvoiceDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Invoice {invoice.invoice_number}
+            Rechnung {invoice.invoice_number}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {invoice.file_name} &middot; Saved {new Date(invoice.created_at).toLocaleDateString()}
+            {invoice.file_name} &middot; Gespeichert {new Date(invoice.created_at).toLocaleDateString()}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {invoice.file_path && (
             <Button asChild variant="outline">
               <a href={`/api/invoices/${params.id}/pdf`} target="_blank" rel="noopener noreferrer">
-                View PDF
+                PDF ansehen
               </a>
             </Button>
           )}
           <Button asChild variant="outline">
-            <Link href="/invoices">Back to Invoices</Link>
+            <Link href="/invoices">Zurück zu Rechnungen</Link>
           </Button>
         </div>
       </div>

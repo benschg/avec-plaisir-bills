@@ -72,7 +72,7 @@ function SearchImageButton({ query, fallback }: { query?: string; fallback: stri
       size="sm"
       className="h-7 w-7 p-0"
       onClick={handleSearch}
-      title={query ? `Search: ${query}` : "Search product image"}
+      title={query ? `Suche: ${query}` : "Produktbild suchen"}
     >
       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
@@ -229,15 +229,15 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
-          <CardTitle className="text-base">Line Items</CardTitle>
+          <CardTitle className="text-base">Positionen</CardTitle>
           <div className="flex items-center gap-4">
             {expenseDist.totalExpenses > 0 && (
               <span className="text-sm text-muted-foreground whitespace-nowrap">
-                Expenses: <span className="font-medium text-amber-600 dark:text-amber-400">{fmt(expenseDist.totalExpenses, sign)}</span>
+                Kosten: <span className="font-medium text-amber-600 dark:text-amber-400">{fmt(expenseDist.totalExpenses, sign)}</span>
               </span>
             )}
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Margin</span>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Marge</span>
               <Slider
                 value={[globalMargin]}
                 onValueChange={([v]) => setGlobalMargin(v)}
@@ -290,7 +290,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                   min={0.0001}
                   step={0.01}
                 />
-                <span className="text-sm text-muted-foreground whitespace-nowrap ml-2">Total CHF</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap ml-2">Gesamt CHF</span>
                 <Input
                   type="number"
                   value={parseFloat((data.total * exchangeRate).toFixed(2))}
@@ -320,29 +320,29 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 {hasPosition && (
                   <TableHead className="w-12 sticky z-20 bg-muted" style={{ left: posLeft }}>#</TableHead>
                 )}
-                <TableHead className="w-10 text-center sticky z-20 bg-muted" style={{ left: expLeft }}>Exp.</TableHead>
+                <TableHead className="w-10 text-center sticky z-20 bg-muted" style={{ left: expLeft }}>Kost.</TableHead>
                 <TableHead className="sticky z-20 bg-muted shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]" style={{ left: descLeft, width: descWidth }}>
-                  Description
+                  Beschreibung
                   <div
                     onMouseDown={onResizeStart}
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/30 active:bg-primary/50"
                   />
                 </TableHead>
-                <TableHead className="text-right w-20">Qty</TableHead>
-                <TableHead className="text-right w-28">Unit Price</TableHead>
-                {hasTaxRate && <TableHead className="text-right w-20">Tax %</TableHead>}
-                <TableHead className="text-right w-28">Adjusted</TableHead>
-                <TableHead className="text-right w-28">Total</TableHead>
-                <TableHead className="text-right w-28">Adj. Total</TableHead>
-                {needsConversion && <TableHead className="text-right w-28">Total CHF</TableHead>}
-                <TableHead className="text-right w-20">Margin %</TableHead>
-                <TableHead className="text-right w-28">Sell</TableHead>
-                <TableHead className="text-right w-28">Sell Total</TableHead>
-                <TableHead className="text-right w-28">Profit</TableHead>
-                <TableHead className="text-right w-28">Profit Total</TableHead>
+                <TableHead className="text-right w-20">Menge</TableHead>
+                <TableHead className="text-right w-28">Einzelpreis</TableHead>
+                {hasTaxRate && <TableHead className="text-right w-20">Steuer %</TableHead>}
+                <TableHead className="text-right w-28">Angepasst</TableHead>
+                <TableHead className="text-right w-28">Gesamt</TableHead>
+                <TableHead className="text-right w-28">Ang. Gesamt</TableHead>
+                {needsConversion && <TableHead className="text-right w-28">Gesamt CHF</TableHead>}
+                <TableHead className="text-right w-20">Marge %</TableHead>
+                <TableHead className="text-right w-28">Verkauf</TableHead>
+                <TableHead className="text-right w-28">Verk. Gesamt</TableHead>
+                <TableHead className="text-right w-28">Gewinn</TableHead>
+                <TableHead className="text-right w-28">Gew. Gesamt</TableHead>
                 <TableHead className="text-right w-20">MWST</TableHead>
-                <TableHead className="text-right w-28">Sell incl.</TableHead>
-                <TableHead className="text-right w-28">Total incl.</TableHead>
+                <TableHead className="text-right w-28">Verk. inkl.</TableHead>
+                <TableHead className="text-right w-28">Ges. inkl.</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
