@@ -247,11 +247,11 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <span className="text-sm text-muted-foreground whitespace-nowrap ml-2">Total CHF</span>
                 <Input
                   type="number"
-                  value={parseFloat((totals.sellIncl * exchangeRate).toFixed(2))}
+                  value={parseFloat((data.total * exchangeRate).toFixed(2))}
                   onChange={(e) => {
                     const v = parseFloat(e.target.value);
-                    if (!isNaN(v) && v > 0 && totals.sellIncl > 0) {
-                      setExchangeRate(v / totals.sellIncl);
+                    if (!isNaN(v) && v > 0 && data.total > 0) {
+                      setExchangeRate(v / data.total);
                     }
                   }}
                   className="w-24 h-7 text-right text-sm"
@@ -288,6 +288,7 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <TableHead className="text-right w-28">Adjusted</TableHead>
                 <TableHead className="text-right w-28">Total</TableHead>
                 <TableHead className="text-right w-28">Adj. Total</TableHead>
+                {needsConversion && <TableHead className="text-right w-28">Total CHF</TableHead>}
                 <TableHead className="text-right w-20">Margin %</TableHead>
                 <TableHead className="text-right w-28">Sell</TableHead>
                 <TableHead className="text-right w-28">Sell Total</TableHead>
@@ -356,6 +357,17 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                         </span>
                       )}
                     </TableCell>
+                    {needsConversion && (
+                      <TableCell className="text-right">
+                        {isExpense ? (
+                          <span className="text-muted-foreground">--</span>
+                        ) : (
+                          <span className="font-medium text-orange-600 dark:text-orange-400">
+                            {fmt(expenseDist.adjustedUnitPriceByIndex[index] * item.quantity * rate, sellSign)}
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="text-right">
                       {isExpense ? (
                         <span className="text-muted-foreground">--</span>
@@ -424,6 +436,11 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <TableCell className="text-right text-orange-600 dark:text-orange-400">
                   {fmt(adjustedTotalSum, sign)}
                 </TableCell>
+                {needsConversion && (
+                  <TableCell className="text-right text-orange-600 dark:text-orange-400">
+                    {fmt(adjustedTotalSum * rate, sellSign)}
+                  </TableCell>
+                )}
                 <TableCell colSpan={2} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
                   {fmt(totals.sellExcl * rate, sellSign)}
@@ -456,6 +473,7 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <TableCell />
                 <TableCell className="text-right">{fmt(data.tax_amount, sign)}</TableCell>
                 <TableCell />
+                {needsConversion && <TableCell />}
                 <TableCell colSpan={7} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
                   {fmt(totals.mwst * rate, sellSign)}
@@ -469,6 +487,11 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 <TableCell className="text-right font-bold text-orange-600 dark:text-orange-400">
                   {fmt(adjustedTotalSum, sign)}
                 </TableCell>
+                {needsConversion && (
+                  <TableCell className="text-right font-bold text-orange-600 dark:text-orange-400">
+                    {fmt(adjustedTotalSum * rate, sellSign)}
+                  </TableCell>
+                )}
                 <TableCell colSpan={2} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
                   {fmt(totals.sellExcl * rate, sellSign)}
