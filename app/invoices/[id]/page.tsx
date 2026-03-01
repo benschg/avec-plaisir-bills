@@ -202,14 +202,6 @@ export default function InvoiceDetailPage() {
 
       <InvoiceDetails data={data} />
 
-      <InvoiceTable
-        data={data}
-        additionalExpenses={additionalExpenses}
-        expenseFlags={expenseFlags}
-        onExpenseToggle={(i) => setExpenseFlags((prev) => { const next = [...prev]; next[i] = !next[i]; return next; })}
-        onSummaryChange={setSummary}
-      />
-
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
         <AdditionalExpensesCard
           lineExpenses={lineExpenses}
@@ -221,6 +213,14 @@ export default function InvoiceDetailPage() {
         />
         <InvoiceSummaryCard summary={summary} />
       </div>
+
+      <InvoiceTable
+        data={data}
+        additionalExpenses={additionalExpenses}
+        expenseFlags={expenseFlags}
+        onExpenseToggle={(i) => setExpenseFlags((prev) => { const next = [...prev]; next[i] = !next[i]; return next; })}
+        onSummaryChange={setSummary}
+      />
     </div>
   );
 }

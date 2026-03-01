@@ -108,81 +108,79 @@ export function AdditionalExpensesCard({
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardHeader className="pb-3">
           <CardTitle className="text-base">Expenses</CardTitle>
-          <Button size="sm" variant="outline" onClick={openAdd}>
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Add
-          </Button>
         </CardHeader>
 
-        {hasAny && (
-          <CardContent className="pt-0">
-            <div className="text-sm space-y-0">
+        <CardContent className="pt-0">
+          <div className="text-sm space-y-0">
 
-              {/* From Invoice */}
-              {lineExpenses.length > 0 && (
-                <>
-                  <div className="py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    From Invoice
+            {/* From Invoice */}
+            {lineExpenses.length > 0 && (
+              <>
+                <div className="py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  From Invoice
+                </div>
+                {lineExpenses.map((exp, i) => (
+                  <div key={i} className="flex justify-between items-center py-1 pl-3 gap-4">
+                    <span className="text-muted-foreground truncate" title={exp.description}>
+                      {exp.description}
+                    </span>
+                    <span className="font-medium text-amber-700 dark:text-amber-400 whitespace-nowrap tabular-nums">
+                      {fmt(exp.amount, exp.currency)}
+                    </span>
                   </div>
-                  {lineExpenses.map((exp, i) => (
-                    <div key={i} className="flex justify-between items-center py-1 pl-3 gap-4">
-                      <span className="text-muted-foreground truncate" title={exp.description}>
-                        {exp.description}
-                      </span>
-                      <span className="font-medium text-amber-700 dark:text-amber-400 whitespace-nowrap tabular-nums">
-                        {fmt(exp.amount, exp.currency)}
-                      </span>
-                    </div>
-                  ))}
-                  {lineExpenses.length > 1 && (
-                    <div className="flex justify-between items-center py-1 pl-3 border-t mt-0.5 gap-4">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span className="font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap tabular-nums">
-                        {fmt(lineTotal, invoiceCurrency)}
-                      </span>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Added Separately */}
-              {expenses.length > 0 && (
-                <>
-                  <div className={`py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide ${lineExpenses.length > 0 ? "mt-3 border-t pt-3" : ""}`}>
-                    Added Separately
+                ))}
+                {lineExpenses.length > 1 && (
+                  <div className="flex justify-between items-center py-1 pl-3 border-t mt-0.5 gap-4">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap tabular-nums">
+                      {fmt(lineTotal, invoiceCurrency)}
+                    </span>
                   </div>
-                  {expenses.map((exp, i) => (
-                    <div key={i} className="flex items-center py-1 pl-3 gap-2">
-                      <span className="text-muted-foreground truncate flex-1" title={exp.description}>
-                        {exp.description}
-                      </span>
-                      <span className="font-medium text-red-700 dark:text-red-400 whitespace-nowrap tabular-nums">
-                        {fmt(exp.amount, exp.currency)}
-                      </span>
-                      <Button
-                        variant="ghost" size="sm"
-                        className="h-6 w-6 p-0 shrink-0"
-                        onClick={() => openEdit(i)}
-                        title="Edit"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost" size="sm"
-                        className="h-6 w-6 p-0 shrink-0 text-destructive hover:text-destructive"
-                        onClick={() => onRemoveExpense(i)}
-                        title="Remove"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </>
-              )}
+                )}
+              </>
+            )}
 
-              {/* Grand Total */}
+            {/* Added Separately */}
+            <div className={`flex items-center justify-between ${lineExpenses.length > 0 ? "mt-3 border-t pt-3" : ""}`}>
+              <span className="py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Added Separately
+              </span>
+              <Button size="sm" variant="ghost" onClick={openAdd} className="h-6 px-2 -mr-1">
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add
+              </Button>
+            </div>
+            {expenses.map((exp, i) => (
+              <div key={i} className="flex items-center py-1 pl-3 gap-2">
+                <span className="text-muted-foreground truncate flex-1" title={exp.description}>
+                  {exp.description}
+                </span>
+                <Button
+                  variant="ghost" size="sm"
+                  className="h-6 w-6 p-0 shrink-0"
+                  onClick={() => openEdit(i)}
+                  title="Edit"
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost" size="sm"
+                  className="h-6 w-6 p-0 shrink-0 text-destructive hover:text-destructive"
+                  onClick={() => onRemoveExpense(i)}
+                  title="Remove"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+                <span className="font-medium text-red-700 dark:text-red-400 whitespace-nowrap tabular-nums">
+                  {fmt(exp.amount, exp.currency)}
+                </span>
+              </div>
+            ))}
+
+            {/* Grand Total */}
+            {hasAny && (
               <div className="border-t mt-2 pt-2 space-y-0.5">
                 {grandInvoiceCurrency > 0 && (
                   <div className="flex justify-between items-center gap-4">
@@ -201,10 +199,10 @@ export function AdditionalExpensesCard({
                   </div>
                 )}
               </div>
+            )}
 
-            </div>
-          </CardContent>
-        )}
+          </div>
+        </CardContent>
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>

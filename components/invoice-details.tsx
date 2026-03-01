@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import type { InvoiceData } from "@/lib/types";
 
 interface InvoiceDetailsProps {
@@ -86,22 +85,6 @@ export function InvoiceDetails({ data }: InvoiceDetailsProps) {
         </Card>
       )}
 
-      <Card className={data.payment_info || data.notes ? "" : "md:col-span-3"}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Totals</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <InfoRow label="Subtotal" value={`${data.subtotal.toFixed(2)} ${data.currency}`} />
-          <InfoRow label="Tax" value={`${data.tax_amount.toFixed(2)} ${data.currency}`} />
-          <Separator />
-          <div className="flex justify-between text-sm font-bold">
-            <span>Total</span>
-            <span>
-              {data.total.toFixed(2)} {data.currency}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
