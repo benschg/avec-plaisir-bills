@@ -5,6 +5,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -139,6 +140,10 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
   const posLeft = "0rem";
   const expLeft = hasPosition ? "3rem" : "0rem";
   const descLeft = hasPosition ? "5.5rem" : "2.5rem";
+
+  // Footer colspan helpers
+  const stickyColSpan = (hasPosition ? 1 : 0) + 2; // # + Kost. + Beschreibung
+  const gapAfterDesc = 1 + 1 + (hasTaxRate ? 1 : 0); // Menge + Einzelpreis + Steuer%
 
   // Split additional expenses by currency (must be before expenseDist so they're included in distribution)
   const addlExpOrigCurrency = additionalExpenses
@@ -473,6 +478,49 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 );
               })}
             </TableBody>
+            <TableFooter className="sticky bottom-0 z-30 bg-muted">
+              {/* Zwischensumme */}
+              <TableRow>
+                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-20 bg-muted overflow-hidden truncate">Zwischensumme</TableCell>
+                <TableCell colSpan={gapAfterDesc} />
+                <TableCell />
+                <TableCell className="text-right">{fmt(data.subtotal, sign)}</TableCell>
+                <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum, sign)}</TableCell>
+                {needsConversion && <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum * rate, sellSign)}</TableCell>}
+                <TableCell colSpan={2} />
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellExcl * rate, sellSign)}</TableCell>
+                <TableCell />
+                <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmt(totals.profit * rate, sellSign)}</TableCell>
+                <TableCell colSpan={2} />
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellIncl * rate, sellSign)}</TableCell>
+              </TableRow>
+              {/* MWST */}
+              <TableRow>
+                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-20 bg-muted overflow-hidden truncate">MWST</TableCell>
+                <TableCell colSpan={gapAfterDesc} />
+                <TableCell />
+                <TableCell className="text-right">{fmt(data.tax_amount, sign)}</TableCell>
+                <TableCell />
+                {needsConversion && <TableCell />}
+                <TableCell colSpan={7} />
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.mwst * rate, sellSign)}</TableCell>
+              </TableRow>
+              {/* Gesamt */}
+              <TableRow className="font-bold">
+                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-20 bg-muted overflow-hidden truncate">Gesamt</TableCell>
+                <TableCell colSpan={gapAfterDesc} />
+                <TableCell />
+                <TableCell className="text-right">{fmt(data.total, sign)}</TableCell>
+                <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum, sign)}</TableCell>
+                {needsConversion && <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum * rate, sellSign)}</TableCell>}
+                <TableCell colSpan={2} />
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellExcl * rate, sellSign)}</TableCell>
+                <TableCell />
+                <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmt(totals.profit * rate, sellSign)}</TableCell>
+                <TableCell colSpan={2} />
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellIncl * rate, sellSign)}</TableCell>
+              </TableRow>
+            </TableFooter>
           </Table>
           {/* Cover scrollbar gutter under frozen columns */}
           <div
