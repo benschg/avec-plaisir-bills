@@ -336,8 +336,8 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 <TableHead className="text-right w-20">Menge</TableHead>
                 <TableHead className="text-right w-28">Einzelpreis</TableHead>
                 {hasTaxRate && <TableHead className="text-right w-20">Steuer %</TableHead>}
-                <TableHead className="text-right w-28">Angepasst</TableHead>
                 <TableHead className="text-right w-28">Gesamt</TableHead>
+                <TableHead className="text-right w-28">Angepasst</TableHead>
                 <TableHead className="text-right w-28">Ang. Gesamt</TableHead>
                 {needsConversion && <TableHead className="text-right w-28">Gesamt CHF</TableHead>}
                 <TableHead className="text-right w-20">Marge %</TableHead>
@@ -387,6 +387,9 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                         {item.tax_rate != null ? `${item.tax_rate}%` : "-"}
                       </TableCell>
                     )}
+                    <TableCell className="text-right font-medium">
+                      {fmt(item.line_total, sign)}
+                    </TableCell>
                     <TableCell className="text-right">
                       {isExpense ? (
                         <span className="text-muted-foreground">--</span>
@@ -395,9 +398,6 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                           {fmt(expenseDist.adjustedUnitPriceByIndex[index], sign)}
                         </span>
                       )}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {fmt(item.line_total, sign)}
                     </TableCell>
                     <TableCell className="text-right">
                       {isExpense ? (
@@ -483,8 +483,8 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
               <TableRow>
                 <TableCell colSpan={stickyColSpan} className="sticky left-0 z-20 bg-muted overflow-hidden truncate">Zwischensumme</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
-                <TableCell />
                 <TableCell className="text-right">{fmt(data.subtotal, sign)}</TableCell>
+                <TableCell />
                 <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum, sign)}</TableCell>
                 {needsConversion && <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum * rate, sellSign)}</TableCell>}
                 <TableCell colSpan={2} />
@@ -498,8 +498,8 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
               <TableRow>
                 <TableCell colSpan={stickyColSpan} className="sticky left-0 z-20 bg-muted overflow-hidden truncate">MWST</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
-                <TableCell />
                 <TableCell className="text-right">{fmt(data.tax_amount, sign)}</TableCell>
+                <TableCell />
                 <TableCell />
                 {needsConversion && <TableCell />}
                 <TableCell colSpan={7} />
@@ -509,8 +509,8 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
               <TableRow className="font-bold">
                 <TableCell colSpan={stickyColSpan} className="sticky left-0 z-20 bg-muted overflow-hidden truncate">Gesamt</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
-                <TableCell />
                 <TableCell className="text-right">{fmt(data.total, sign)}</TableCell>
+                <TableCell />
                 <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum, sign)}</TableCell>
                 {needsConversion && <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum * rate, sellSign)}</TableCell>}
                 <TableCell colSpan={2} />
