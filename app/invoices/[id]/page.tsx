@@ -8,6 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { InvoiceDetails } from "@/components/invoice-details";
 import { InvoiceTable } from "@/components/invoice-table";
+import type { InvoiceSummary } from "@/components/invoice-table";
+import { InvoiceSummaryCard } from "@/components/invoice-summary-card";
 import { AdditionalExpensesCard } from "@/components/additional-expenses-card";
 import type { AdditionalExpense } from "@/components/additional-expenses-card";
 import type { InvoiceData } from "@/lib/types";
@@ -69,6 +71,7 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState<FullInvoice | null>(null);
   const [additionalExpenses, setAdditionalExpenses] = useState<AdditionalExpense[]>([]);
   const [expenseFlags, setExpenseFlags] = useState<boolean[]>([]);
+  const [summary, setSummary] = useState<InvoiceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -199,15 +202,15 @@ export default function InvoiceDetailPage() {
 
       <InvoiceDetails data={data} />
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
-        <div className="xl:col-span-3">
-          <InvoiceTable
-            data={data}
-            additionalExpenses={additionalExpenses}
-            expenseFlags={expenseFlags}
-            onExpenseToggle={(i) => setExpenseFlags((prev) => { const next = [...prev]; next[i] = !next[i]; return next; })}
-          />
-        </div>
+      <InvoiceTable
+        data={data}
+        additionalExpenses={additionalExpenses}
+        expenseFlags={expenseFlags}
+        onExpenseToggle={(i) => setExpenseFlags((prev) => { const next = [...prev]; next[i] = !next[i]; return next; })}
+        onSummaryChange={setSummary}
+      />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
         <AdditionalExpensesCard
           lineExpenses={lineExpenses}
           expenses={additionalExpenses}
@@ -216,6 +219,7 @@ export default function InvoiceDetailPage() {
           onRemoveExpense={handleRemoveExpense}
           invoiceCurrency={data.currency}
         />
+        <InvoiceSummaryCard summary={summary} />
       </div>
     </div>
   );

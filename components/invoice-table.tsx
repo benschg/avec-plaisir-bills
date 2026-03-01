@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -33,11 +32,30 @@ import {
   resolveMwst,
 } from "@/lib/pricing";
 
+export interface InvoiceSummary {
+  currency: string;
+  needsConversion: boolean;
+  rate: number;
+  purchaseSubtotal: number;
+  purchaseTax: number;
+  purchaseTotal: number;
+  billExpensesTotal: number;
+  addlExpOrigCurrency: number;
+  addlExpCHF: number;
+  adjustedTotalOrigCurrency: number;
+  sellExcl: number;
+  mwst: number;
+  sellIncl: number;
+  profit: number;
+  finalProfitCHF: number;
+}
+
 interface InvoiceTableProps {
   data: InvoiceData;
   additionalExpenses?: { description: string; amount: number; currency: string }[];
   expenseFlags: boolean[];
   onExpenseToggle: (index: number) => void;
+  onSummaryChange?: (summary: InvoiceSummary) => void;
 }
 
 function SearchImageButton({ query, fallback }: { query?: string; fallback: string }) {
@@ -78,7 +96,7 @@ function fmt(value: number, sign: string): string {
   return `${sign} ${value.toFixed(2)}`;
 }
 
-export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onExpenseToggle }: InvoiceTableProps) {
+export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onExpenseToggle, onSummaryChange }: InvoiceTableProps) {
   const sign = currencySign(data.currency);
   const sellSign = currencySign("CHF");
   const needsConversion = data.currency !== "CHF";
@@ -116,10 +134,6 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
 
   const hasTaxRate = data.line_items.some((item) => item.tax_rate != null);
   const hasPosition = data.line_items.some((item) => item.position != null);
-  // Footer: sticky label spans frozen columns only ([#] + Exp + Desc)
-  const stickyColSpan = (hasPosition ? 1 : 0) + 1 + 1;
-  // Remaining label columns after Description (Qty + UnitPrice + [Tax%])
-  const gapAfterDesc = 1 + 1 + (hasTaxRate ? 1 : 0);
 
   // Sticky column left offsets (rem): #(w-12=3rem), Exp(w-10=2.5rem)
   const posLeft = "0rem";
@@ -159,6 +173,30 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
     return sum + expenseDist.adjustedUnitPriceByIndex[i] * item.quantity;
   }, 0);
 
+  const summaryCallbackRef = useRef(onSummaryChange);
+  useEffect(() => { summaryCallbackRef.current = onSummaryChange; });
+
+  const summary = useMemo<InvoiceSummary>(() => ({
+    currency: data.currency,
+    needsConversion,
+    rate,
+    purchaseSubtotal: data.subtotal,
+    purchaseTax: data.tax_amount,
+    purchaseTotal: data.total,
+    billExpensesTotal,
+    addlExpOrigCurrency,
+    addlExpCHF,
+    adjustedTotalOrigCurrency: adjustedTotalSum,
+    sellExcl: totals.sellExcl * rate,
+    mwst: totals.mwst * rate,
+    sellIncl: totals.sellIncl * rate,
+    profit: totals.profit * rate,
+    finalProfitCHF,
+  }), [data.currency, data.subtotal, data.tax_amount, data.total, needsConversion, rate,
+      billExpensesTotal, addlExpOrigCurrency, addlExpCHF, adjustedTotalSum,
+      totals.sellExcl, totals.mwst, totals.sellIncl, totals.profit, finalProfitCHF]);
+
+  useEffect(() => { summaryCallbackRef.current?.(summary); }, [summary]);
 
   const handleItemMarginChange = (index: number, value: string) => {
     if (value === "") {
@@ -435,114 +473,6 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 );
               })}
             </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Subtotal</TableCell>
-                <TableCell colSpan={gapAfterDesc} />
-                <TableCell />
-                <TableCell className="text-right">{fmt(data.subtotal, sign)}</TableCell>
-                <TableCell className="text-right text-orange-600 dark:text-orange-400">
-                  {fmt(adjustedTotalSum, sign)}
-                </TableCell>
-                {needsConversion && (
-                  <TableCell className="text-right text-orange-600 dark:text-orange-400">
-                    {fmt(adjustedTotalSum * rate, sellSign)}
-                  </TableCell>
-                )}
-                <TableCell colSpan={2} />
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {fmt(totals.sellExcl * rate, sellSign)}
-                </TableCell>
-                <TableCell />
-                <TableCell className="text-right text-emerald-600 dark:text-emerald-400">
-                  {fmt(totals.profit * rate, sellSign)}
-                </TableCell>
-                <TableCell colSpan={2} />
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {fmt(totals.sellIncl * rate, sellSign)}
-                </TableCell>
-              </TableRow>
-              {billExpensesTotal > 0 && (
-                <TableRow>
-                  <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted text-amber-600 dark:text-amber-400 overflow-hidden truncate">
-                    Expenses (distributed)
-                  </TableCell>
-                  <TableCell colSpan={gapAfterDesc} />
-                  <TableCell />
-                  <TableCell className="text-right text-amber-600 dark:text-amber-400">
-                    {fmt(billExpensesTotal, sign)}
-                  </TableCell>
-                  <TableCell />
-                  {needsConversion && (
-                    <TableCell className="text-right text-amber-600 dark:text-amber-400">
-                      {fmt(billExpensesTotal * rate, sellSign)}
-                    </TableCell>
-                  )}
-                  <TableCell colSpan={20} />
-                </TableRow>
-              )}
-              {additionalExpenses.length > 0 && (
-                <TableRow>
-                  <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted text-red-600 dark:text-red-400 overflow-hidden truncate">
-                    Additional Expenses
-                  </TableCell>
-                  <TableCell colSpan={gapAfterDesc} />
-                  <TableCell />
-                  <TableCell className="text-right text-red-600 dark:text-red-400">
-                    {!needsConversion
-                      ? (addlExpCHF > 0 ? fmt(addlExpCHF, sign) : "")
-                      : (addlExpOrigCurrency > 0 ? fmt(addlExpOrigCurrency, sign) : "")}
-                  </TableCell>
-                  <TableCell />
-                  {needsConversion && (
-                    <TableCell className="text-right text-red-600 dark:text-red-400">
-                      {(addlExpOrigCurrency * rate + addlExpCHF) > 0
-                        ? fmt(addlExpOrigCurrency * rate + addlExpCHF, sellSign)
-                        : ""}
-                    </TableCell>
-                  )}
-                  <TableCell colSpan={20} />
-                </TableRow>
-              )}
-              <TableRow>
-                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">MWST</TableCell>
-                <TableCell colSpan={gapAfterDesc} />
-                <TableCell />
-                <TableCell className="text-right">{fmt(data.tax_amount, sign)}</TableCell>
-                <TableCell />
-                {needsConversion && <TableCell />}
-                <TableCell colSpan={7} />
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {fmt(totals.mwst * rate, sellSign)}
-                </TableCell>
-              </TableRow>
-              <TableRow className="font-bold">
-                <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted overflow-hidden truncate">Total</TableCell>
-                <TableCell colSpan={gapAfterDesc} />
-                <TableCell />
-                <TableCell className="text-right">{fmt(data.total, sign)}</TableCell>
-                <TableCell className="text-right font-bold text-orange-600 dark:text-orange-400">
-                  {fmt(adjustedTotalSum, sign)}
-                </TableCell>
-                {needsConversion && (
-                  <TableCell className="text-right font-bold text-orange-600 dark:text-orange-400">
-                    {fmt(adjustedTotalSum * rate, sellSign)}
-                  </TableCell>
-                )}
-                <TableCell colSpan={2} />
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {fmt(totals.sellExcl * rate, sellSign)}
-                </TableCell>
-                <TableCell />
-                <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
-                  {fmt(finalProfitCHF, sellSign)}
-                </TableCell>
-                <TableCell colSpan={2} />
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                  {fmt(totals.sellIncl * rate, sellSign)}
-                </TableCell>
-              </TableRow>
-            </TableFooter>
           </Table>
           {/* Cover scrollbar gutter under frozen columns */}
           <div
