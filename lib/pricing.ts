@@ -44,9 +44,10 @@ export interface ExpenseDistribution {
  */
 export function calcExpenseDistribution(
   items: LineItem[],
-  expenseFlags: boolean[]
+  expenseFlags: boolean[],
+  extraExpenses: number = 0
 ): ExpenseDistribution {
-  let totalExpenses = 0;
+  let totalExpenses = extraExpenses;
   let totalProductValue = 0;
   const productIndices: number[] = [];
 

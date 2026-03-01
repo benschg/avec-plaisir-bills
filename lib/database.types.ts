@@ -34,6 +34,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      additional_expenses: {
+        Row: {
+          id: string
+          invoice_id: string
+          description: string
+          amount: number
+          currency: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          invoice_id: string
+          description: string
+          amount: number
+          currency?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          invoice_id?: string
+          description?: string
+          amount?: number
+          currency?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "additional_expenses_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string

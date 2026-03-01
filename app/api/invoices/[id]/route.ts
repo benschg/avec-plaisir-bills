@@ -15,7 +15,8 @@ export async function GET(
         vendors (*),
         customers (*),
         line_items (*),
-        payment_info (*)
+        payment_info (*),
+        additional_expenses (*)
       `)
       .eq("id", id)
       .single();

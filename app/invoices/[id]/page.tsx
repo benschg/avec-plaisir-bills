@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { InvoiceDetails } from "@/components/invoice-details";
 import { InvoiceTable } from "@/components/invoice-table";
+import { AdditionalExpensesCard } from "@/components/additional-expenses-card";
+import type { AdditionalExpense } from "@/components/additional-expenses-card";
 import type { InvoiceData } from "@/lib/types";
 import type { Tables } from "@/lib/database.types";
 
@@ -16,6 +18,7 @@ type FullInvoice = Tables<"invoices"> & {
   customers: Tables<"customers">;
   line_items: Tables<"line_items">[];
   payment_info: Tables<"payment_info"> | null;
+  additional_expenses: Tables<"additional_expenses">[];
 };
 
 function toInvoiceData(inv: FullInvoice): InvoiceData {
@@ -64,6 +67,8 @@ function toInvoiceData(inv: FullInvoice): InvoiceData {
 export default function InvoiceDetailPage() {
   const params = useParams<{ id: string }>();
   const [invoice, setInvoice] = useState<FullInvoice | null>(null);
+  const [additionalExpenses, setAdditionalExpenses] = useState<AdditionalExpense[]>([]);
+  const [expenseFlags, setExpenseFlags] = useState<boolean[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,6 +78,15 @@ export default function InvoiceDetailPage() {
       .then((result) => {
         if (result.success) {
           setInvoice(result.data);
+          setExpenseFlags(result.data.line_items.map((li: Tables<"line_items">) => li.is_expense ?? false));
+          setAdditionalExpenses(
+            (result.data.additional_expenses ?? []).map((e: Tables<"additional_expenses">) => ({
+              id: e.id,
+              description: e.description,
+              amount: e.amount,
+              currency: e.currency,
+            }))
+          );
         } else {
           setError(result.error || "Invoice not found");
         }
@@ -81,9 +95,58 @@ export default function InvoiceDetailPage() {
       .finally(() => setLoading(false));
   }, [params.id]);
 
+  const handleAddExpense = useCallback(
+    async (expense: AdditionalExpense) => {
+      const res = await fetch(`/api/invoices/${params.id}/expenses`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(expense),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setAdditionalExpenses((prev) => [...prev, { ...expense, id: result.data.id }]);
+      }
+    },
+    [params.id]
+  );
+
+  const handleUpdateExpense = useCallback(
+    async (index: number, expense: AdditionalExpense) => {
+      const existing = additionalExpenses[index];
+      if (!existing?.id) return;
+      const res = await fetch(`/api/invoices/${params.id}/expenses/${existing.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(expense),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setAdditionalExpenses((prev) =>
+          prev.map((e, i) => (i === index ? { ...expense, id: existing.id } : e))
+        );
+      }
+    },
+    [params.id, additionalExpenses]
+  );
+
+  const handleRemoveExpense = useCallback(
+    async (index: number) => {
+      const existing = additionalExpenses[index];
+      if (!existing?.id) return;
+      const res = await fetch(`/api/invoices/${params.id}/expenses/${existing.id}`, {
+        method: "DELETE",
+      });
+      const result = await res.json();
+      if (result.success) {
+        setAdditionalExpenses((prev) => prev.filter((_, i) => i !== index));
+      }
+    },
+    [params.id, additionalExpenses]
+  );
+
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <p className="text-sm text-muted-foreground text-center py-16">Loading...</p>
       </div>
     );
@@ -91,7 +154,7 @@ export default function InvoiceDetailPage() {
 
   if (error || !invoice) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-4">
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-4">
         <Alert variant="destructive">
           <AlertDescription>{error || "Invoice not found"}</AlertDescription>
         </Alert>
@@ -103,9 +166,12 @@ export default function InvoiceDetailPage() {
   }
 
   const data = toInvoiceData(invoice);
+  const lineExpenses = data.line_items
+    .filter((_, i) => expenseFlags[i])
+    .map((li) => ({ description: li.description, amount: li.line_total, currency: data.currency }));
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -132,7 +198,25 @@ export default function InvoiceDetailPage() {
       <Separator />
 
       <InvoiceDetails data={data} />
-      <InvoiceTable data={data} />
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+        <div className="xl:col-span-3">
+          <InvoiceTable
+            data={data}
+            additionalExpenses={additionalExpenses}
+            expenseFlags={expenseFlags}
+            onExpenseToggle={(i) => setExpenseFlags((prev) => { const next = [...prev]; next[i] = !next[i]; return next; })}
+          />
+        </div>
+        <AdditionalExpensesCard
+          lineExpenses={lineExpenses}
+          expenses={additionalExpenses}
+          onAddExpense={handleAddExpense}
+          onUpdateExpense={handleUpdateExpense}
+          onRemoveExpense={handleRemoveExpense}
+          invoiceCurrency={data.currency}
+        />
+      </div>
     </div>
   );
 }

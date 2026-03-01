@@ -35,6 +35,9 @@ import {
 
 interface InvoiceTableProps {
   data: InvoiceData;
+  additionalExpenses?: { description: string; amount: number; currency: string }[];
+  expenseFlags: boolean[];
+  onExpenseToggle: (index: number) => void;
 }
 
 function SearchImageButton({ query, fallback }: { query?: string; fallback: string }) {
@@ -75,7 +78,7 @@ function fmt(value: number, sign: string): string {
   return `${sign} ${value.toFixed(2)}`;
 }
 
-export function InvoiceTable({ data }: InvoiceTableProps) {
+export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onExpenseToggle }: InvoiceTableProps) {
   const sign = currencySign(data.currency);
   const sellSign = currencySign("CHF");
   const needsConversion = data.currency !== "CHF";
@@ -85,9 +88,6 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
   const [globalMwst, setGlobalMwst] = useState(DEFAULT_MWST);
   const [itemMargins, setItemMargins] = useState<Record<number, number | null>>({});
   const [itemMwst, setItemMwst] = useState<Record<number, string | null>>({});
-  const [expenseFlags, setExpenseFlags] = useState<boolean[]>(
-    data.line_items.map((item) => item.is_expense ?? false)
-  );
   const [descWidth, setDescWidth] = useState(288); // w-72 = 18rem = 288px
 
   const resizing = useRef(false);
@@ -126,7 +126,19 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
   const expLeft = hasPosition ? "3rem" : "0rem";
   const descLeft = hasPosition ? "5.5rem" : "2.5rem";
 
-  const expenseDist = calcExpenseDistribution(data.line_items, expenseFlags);
+  // Split additional expenses by currency (must be before expenseDist so they're included in distribution)
+  const addlExpOrigCurrency = additionalExpenses
+    .filter((e) => e.currency !== "CHF")
+    .reduce((sum, e) => sum + e.amount, 0);
+  const addlExpCHF = additionalExpenses
+    .filter((e) => e.currency === "CHF")
+    .reduce((sum, e) => sum + e.amount, 0);
+  // Convert additional expenses to original currency so they can be distributed alongside bill expenses
+  const addlExpInOrigCurrency = addlExpOrigCurrency + (needsConversion && rate > 0 ? addlExpCHF / rate : addlExpCHF);
+
+  const expenseDist = calcExpenseDistribution(data.line_items, expenseFlags, addlExpInOrigCurrency);
+  // Bill-only expenses for separate footer display
+  const billExpensesTotal = expenseDist.totalExpenses - addlExpInOrigCurrency;
 
   const lineCalcs = data.line_items.map((item, i) => {
     if (expenseFlags[i]) {
@@ -138,19 +150,15 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
   });
 
   const totals = calcInvoiceTotals(lineCalcs, expenseFlags);
+  // Final profit in CHF: additional expenses are distributed into sell prices but represent a real
+  // external cost, so they must also be deducted from profit to get the true economic margin.
+  const finalProfitCHF = (totals.profit - addlExpOrigCurrency) * rate - addlExpCHF;
 
   const adjustedTotalSum = data.line_items.reduce((sum, item, i) => {
     if (expenseFlags[i]) return sum;
     return sum + expenseDist.adjustedUnitPriceByIndex[i] * item.quantity;
   }, 0);
 
-  const handleExpenseToggle = (index: number) => {
-    setExpenseFlags((prev) => {
-      const next = [...prev];
-      next[index] = !next[index];
-      return next;
-    });
-  };
 
   const handleItemMarginChange = (index: number, value: string) => {
     if (value === "") {
@@ -320,7 +328,7 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                     <TableCell className={`text-center sticky z-10 ${stickyBg}`} style={{ left: expLeft }}>
                       <Checkbox
                         checked={isExpense}
-                        onCheckedChange={() => handleExpenseToggle(index)}
+                        onCheckedChange={() => onExpenseToggle(index)}
                       />
                     </TableCell>
                     <TableCell className={`font-medium sticky z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] ${stickyBg}`} style={{ left: descLeft }}>
@@ -454,7 +462,7 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                   {fmt(totals.sellIncl * rate, sellSign)}
                 </TableCell>
               </TableRow>
-              {expenseDist.totalExpenses > 0 && (
+              {billExpensesTotal > 0 && (
                 <TableRow>
                   <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted text-amber-600 dark:text-amber-400 overflow-hidden truncate">
                     Expenses (distributed)
@@ -462,9 +470,38 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                   <TableCell colSpan={gapAfterDesc} />
                   <TableCell />
                   <TableCell className="text-right text-amber-600 dark:text-amber-400">
-                    {fmt(expenseDist.totalExpenses, sign)}
+                    {fmt(billExpensesTotal, sign)}
                   </TableCell>
-                  <TableCell colSpan={9} />
+                  <TableCell />
+                  {needsConversion && (
+                    <TableCell className="text-right text-amber-600 dark:text-amber-400">
+                      {fmt(billExpensesTotal * rate, sellSign)}
+                    </TableCell>
+                  )}
+                  <TableCell colSpan={20} />
+                </TableRow>
+              )}
+              {additionalExpenses.length > 0 && (
+                <TableRow>
+                  <TableCell colSpan={stickyColSpan} className="sticky left-0 z-10 bg-muted text-red-600 dark:text-red-400 overflow-hidden truncate">
+                    Additional Expenses
+                  </TableCell>
+                  <TableCell colSpan={gapAfterDesc} />
+                  <TableCell />
+                  <TableCell className="text-right text-red-600 dark:text-red-400">
+                    {!needsConversion
+                      ? (addlExpCHF > 0 ? fmt(addlExpCHF, sign) : "")
+                      : (addlExpOrigCurrency > 0 ? fmt(addlExpOrigCurrency, sign) : "")}
+                  </TableCell>
+                  <TableCell />
+                  {needsConversion && (
+                    <TableCell className="text-right text-red-600 dark:text-red-400">
+                      {(addlExpOrigCurrency * rate + addlExpCHF) > 0
+                        ? fmt(addlExpOrigCurrency * rate + addlExpCHF, sellSign)
+                        : ""}
+                    </TableCell>
+                  )}
+                  <TableCell colSpan={20} />
                 </TableRow>
               )}
               <TableRow>
@@ -498,7 +535,7 @@ export function InvoiceTable({ data }: InvoiceTableProps) {
                 </TableCell>
                 <TableCell />
                 <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
-                  {fmt(totals.profit * rate, sellSign)}
+                  {fmt(finalProfitCHF, sellSign)}
                 </TableCell>
                 <TableCell colSpan={2} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
