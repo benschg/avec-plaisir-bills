@@ -226,8 +226,8 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="flex flex-col h-screen">
+      <CardHeader className="shrink-0">
         <div className="flex items-center justify-between gap-4">
           <CardTitle className="text-base">Positionen</CardTitle>
           <div className="flex items-center gap-4">
@@ -308,14 +308,14 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="rounded-md border overflow-hidden relative">
+      <CardContent className="flex-1 min-h-0 flex flex-col">
+        <div className="rounded-md border overflow-hidden relative flex-1 min-h-0 flex flex-col">
           <Table
             className="table-fixed"
-            containerClassName="frozen-scroll"
+            containerClassName="frozen-scroll overflow-y-auto flex-1 min-h-0"
             containerStyle={{ '--frozen-w': `calc(${descLeft} + ${descWidth}px)` } as React.CSSProperties}
           >
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-30 bg-muted">
               <TableRow>
                 {hasPosition && (
                   <TableHead className="w-12 sticky z-20 bg-muted" style={{ left: posLeft }}>#</TableHead>
