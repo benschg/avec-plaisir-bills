@@ -13,14 +13,21 @@ import { InvoiceSummaryCard } from "@/components/invoice-summary-card";
 import { AdditionalExpensesCard } from "@/components/additional-expenses-card";
 import type { AdditionalExpense } from "@/components/additional-expenses-card";
 import type { InvoiceData } from "@/lib/types";
-import type { Tables } from "@/lib/database.types";
+import type {
+  InvoiceRow,
+  LineItemRow,
+  AdditionalExpenseRow,
+  Vendor,
+  Customer,
+  PaymentInfo,
+} from "@/lib/db/types";
 
-type FullInvoice = Tables<"invoices"> & {
-  vendors: Tables<"vendors">;
-  customers: Tables<"customers">;
-  line_items: Tables<"line_items">[];
-  payment_info: Tables<"payment_info"> | null;
-  additional_expenses: Tables<"additional_expenses">[];
+type FullInvoice = InvoiceRow & {
+  vendors: Vendor;
+  customers: Customer;
+  line_items: LineItemRow[];
+  payment_info: PaymentInfo | null;
+  additional_expenses: AdditionalExpenseRow[];
 };
 
 function toInvoiceData(inv: FullInvoice): InvoiceData {
@@ -81,9 +88,9 @@ export default function InvoiceDetailPage() {
       .then((result) => {
         if (result.success) {
           setInvoice(result.data);
-          setExpenseFlags(result.data.line_items.map((li: Tables<"line_items">) => li.is_expense ?? false));
+          setExpenseFlags(result.data.line_items.map((li: LineItemRow) => li.is_expense ?? false));
           setAdditionalExpenses(
-            (result.data.additional_expenses ?? []).map((e: Tables<"additional_expenses">) => ({
+            (result.data.additional_expenses ?? []).map((e: AdditionalExpenseRow) => ({
               id: e.id,
               description: e.description,
               amount: e.amount,

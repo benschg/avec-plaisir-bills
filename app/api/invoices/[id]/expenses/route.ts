@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { db, additional_expenses } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -14,17 +14,20 @@ export async function POST(
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from("additional_expenses")
-      .insert({ invoice_id: id, description, amount, currency })
-      .select()
-      .single();
+    const [data] = await db
+      .insert(additional_expenses)
+      .values({
+        invoice_id: id,
+        description,
+        amount: String(amount),
+        currency,
+      })
+      .returning();
 
-    if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({
+      success: true,
+      data: { ...data, amount: Number(data.amount) },
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ success: false, error: message }, { status: 500 });

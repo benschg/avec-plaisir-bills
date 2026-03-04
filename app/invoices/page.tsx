@@ -14,14 +14,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Tables } from "@/lib/database.types";
+import type { Invoice, Vendor, Customer } from "@/lib/db/types";
 
 type InvoiceRow = Pick<
-  Tables<"invoices">,
-  "id" | "file_name" | "invoice_number" | "invoice_date" | "currency" | "total" | "created_at"
+  Invoice,
+  "id" | "file_name" | "invoice_number" | "invoice_date" | "currency" | "created_at"
 > & {
-  vendors: Pick<Tables<"vendors">, "name">;
-  customers: Pick<Tables<"customers">, "name">;
+  total: number;
+  vendors: Pick<Vendor, "name">;
+  customers: Pick<Customer, "name">;
 };
 
 export default function InvoicesPage() {
