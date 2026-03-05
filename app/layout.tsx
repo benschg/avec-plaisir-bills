@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
-import { NeonAuthUIProvider, UserButton } from "@neondatabase/auth/react";
-import { authClient } from "@/lib/auth/client";
+import { SessionProvider } from "next-auth/react";
 import { NavLinks, AdminSettingsLink } from "@/components/nav-links";
+import { UserButton } from "@/components/user-button";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,13 +31,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <NeonAuthUIProvider
-          authClient={authClient as any}
-          credentials={false}
-          signUp={false}
-          social={{ providers: ["google"] }}
-        >
+        <SessionProvider>
           <header className="border-b bg-card">
             <div className="max-w-5xl mx-auto px-4 h-10 flex items-center justify-between text-xs">
               <nav className="flex items-center gap-4">
@@ -49,12 +43,12 @@ export default function RootLayout({
               </nav>
               <div className="flex items-center gap-3">
                 <AdminSettingsLink />
-                <UserButton size="icon" />
+                <UserButton />
               </div>
             </div>
           </header>
           {children}
-        </NeonAuthUIProvider>
+        </SessionProvider>
       </body>
     </html>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -10,6 +11,7 @@ import { FilePicker } from "@/components/file-picker";
 
 export default function Home() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [apiKey, setApiKey] = useState("");
   const [selectedFile, setSelectedFile] = useState<{ base64: string; name: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,15 +20,12 @@ export default function Home() {
   useEffect(() => {
     const stored = sessionStorage.getItem("gemini-api-key");
     if (stored) setApiKey(stored);
+  }, []);
 
-    // Redirect viewers — they cannot upload
-    fetch("/api/me")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.role === "viewer") router.replace("/invoices");
-      })
-      .catch(() => {});
-  }, [router]);
+  useEffect(() => {
+    if (status === "unauthenticated") router.replace("/auth/sign-in");
+    if (session?.user?.role === "viewer") router.replace("/invoices");
+  }, [session, status, router]);
 
   const handleApiKeyChange = useCallback((key: string) => {
     setApiKey(key);

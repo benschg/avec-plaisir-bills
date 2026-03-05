@@ -121,6 +121,9 @@ export const payment_info = pgTable(
 
 export const app_users = pgTable("app_users", {
   email: text("email").primaryKey(),
+  id: text("id"),
+  name: text("name"),
+  image: text("image"),
   role: text("role", { enum: ["admin", "editor", "viewer"] })
     .notNull()
     .default("viewer"),

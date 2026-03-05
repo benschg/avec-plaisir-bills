@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 export function NavLinks() {
   return (
@@ -14,16 +14,9 @@ export function NavLinks() {
 }
 
 export function AdminSettingsLink() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { data: session } = useSession();
 
-  useEffect(() => {
-    fetch("/api/me")
-      .then((res) => res.json())
-      .then((data) => setIsAdmin(data.role === "admin"))
-      .catch(() => {});
-  }, []);
-
-  if (!isAdmin) return null;
+  if (session?.user?.role !== "admin") return null;
 
   return (
     <a
