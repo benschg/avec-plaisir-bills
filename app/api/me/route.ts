@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
+import { getSessionEmail, getSessionRole } from "@/lib/auth/role";
 
 export async function GET() {
-  const hdrs = await headers();
-  const email = hdrs.get("x-user-email");
-  const role = hdrs.get("x-user-role");
+  const email = await getSessionEmail();
+  const role = await getSessionRole();
 
   return NextResponse.json({ email, role });
 }

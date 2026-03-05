@@ -25,9 +25,9 @@ export default async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Get session using the auth library directly (avoids unreliable HTTP fetch)
-  const session = await auth.api.getSession({ headers: request.headers });
-  const email = session?.user?.email?.toLowerCase();
+  // Get session to check user role
+  const { data: session } = await auth.getSession();
+  const email = session?.user?.email?.toLowerCase() ?? null;
 
   if (email) {
     const sql = neon(process.env.DATABASE_URL!);
