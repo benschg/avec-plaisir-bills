@@ -1,10 +1,14 @@
 import { db, additional_expenses } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/auth/role";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireRole("editor");
+  if (denied) return denied;
+
   try {
     const { id } = await params;
     const body = await request.json();

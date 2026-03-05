@@ -119,6 +119,16 @@ export const payment_info = pgTable(
   (table) => [index("idx_payment_info_invoice_id").on(table.invoice_id)]
 );
 
+export const app_users = pgTable("app_users", {
+  email: text("email").primaryKey(),
+  role: text("role", { enum: ["admin", "editor", "viewer"] })
+    .notNull()
+    .default("viewer"),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export const additional_expenses = pgTable("additional_expenses", {
   id: uuid("id").defaultRandom().primaryKey(),
   invoice_id: uuid("invoice_id")

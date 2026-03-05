@@ -1,11 +1,15 @@
 import { db, additional_expenses } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/auth/role";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; expenseId: string }> }
 ) {
+  const denied = await requireRole("editor");
+  if (denied) return denied;
+
   try {
     const { expenseId } = await params;
     const body = await request.json();
@@ -39,6 +43,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; expenseId: string }> }
 ) {
+  const denied = await requireRole("editor");
+  if (denied) return denied;
+
   try {
     const { expenseId } = await params;
 

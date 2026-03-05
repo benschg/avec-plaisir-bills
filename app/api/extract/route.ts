@@ -1,7 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/auth/role";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireRole("editor");
+  if (denied) return denied;
+
   try {
     const { file, fileName, apiKey } = await request.json();
 

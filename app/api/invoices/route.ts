@@ -2,9 +2,13 @@ import { db, vendors, customers, invoices, line_items, payment_info } from "@/li
 import { uploadFile } from "@/lib/storage";
 import { eq, and, desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/auth/role";
 
 // Save an extracted invoice (normalized across tables)
 export async function POST(request: NextRequest) {
+  const denied = await requireRole("editor");
+  if (denied) return denied;
+
   try {
     const { fileName, data, fileBase64 } = await request.json();
 

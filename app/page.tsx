@@ -18,7 +18,15 @@ export default function Home() {
   useEffect(() => {
     const stored = sessionStorage.getItem("gemini-api-key");
     if (stored) setApiKey(stored);
-  }, []);
+
+    // Redirect viewers — they cannot upload
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.role === "viewer") router.replace("/invoices");
+      })
+      .catch(() => {});
+  }, [router]);
 
   const handleApiKeyChange = useCallback((key: string) => {
     setApiKey(key);

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NeonAuthUIProvider, UserButton } from "@neondatabase/auth/react";
 import { authClient } from "@/lib/auth/client";
+import { NavLinks, AdminSettingsLink } from "@/components/nav-links";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,9 +45,12 @@ export default function RootLayout({
                   <Image src="/icon.png" alt="" width={20} height={20} className="rounded-sm" />
                   Rechnungs-Extraktor
                 </a>
-                <a href="/invoices" className="text-muted-foreground hover:text-foreground transition-colors">Rechnungen</a>
+                <NavLinks />
               </nav>
-              <UserButton size="icon" />
+              <div className="flex items-center gap-3">
+                <AdminSettingsLink />
+                <UserButton size="icon" />
+              </div>
             </div>
           </header>
           {children}
