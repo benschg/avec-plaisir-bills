@@ -17,7 +17,7 @@ export function AdminSettingsLink() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me")
+    fetch("/api/me")
       .then((res) => res.json())
       .then((data) => setIsAdmin(data.role === "admin"))
       .catch(() => {});

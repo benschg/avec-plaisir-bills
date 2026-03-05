@@ -20,7 +20,7 @@ export default function Home() {
     if (stored) setApiKey(stored);
 
     // Redirect viewers — they cannot upload
-    fetch("/api/auth/me")
+    fetch("/api/me")
       .then((res) => res.json())
       .then((data) => {
         if (data.role === "viewer") router.replace("/invoices");

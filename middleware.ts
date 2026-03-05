@@ -46,11 +46,14 @@ export default async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/unauthorized", request.url));
       }
 
-      // Pass role downstream via header
-      const res = response ?? NextResponse.next();
-      res.headers.set("x-user-role", result[0].role);
-      res.headers.set("x-user-email", email);
-      return res;
+      // Forward role + email to downstream handlers via request headers
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-user-role", result[0].role);
+      requestHeaders.set("x-user-email", email);
+
+      return NextResponse.next({
+        request: { headers: requestHeaders },
+      });
     }
   }
 
