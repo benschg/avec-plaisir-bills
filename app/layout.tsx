@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { NeonAuthUIProvider, UserButton } from "@neondatabase/auth/react";
+import { authClient } from "@/lib/auth/client";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,26 +29,19 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <header className="border-b bg-card">
-          <div className="max-w-5xl mx-auto px-4 h-10 flex items-center justify-between text-xs">
-            <nav className="flex items-center gap-4">
-              <a href="/" className="font-semibold text-sm hover:text-foreground transition-colors">Rechnungs-Extraktor</a>
-              <a href="/invoices" className="text-muted-foreground hover:text-foreground transition-colors">Rechnungen</a>
-            </nav>
-            <nav className="flex items-center gap-4 text-muted-foreground">
-              <a href="http://127.0.0.1:54423" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                Studio
-              </a>
-              <a href="http://127.0.0.1:54421" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                API
-              </a>
-              <a href="http://127.0.0.1:54424" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                Inbucket
-              </a>
-            </nav>
-          </div>
-        </header>
-        {children}
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <NeonAuthUIProvider authClient={authClient as any}>
+          <header className="border-b bg-card">
+            <div className="max-w-5xl mx-auto px-4 h-10 flex items-center justify-between text-xs">
+              <nav className="flex items-center gap-4">
+                <a href="/" className="font-semibold text-sm hover:text-foreground transition-colors">Rechnungs-Extraktor</a>
+                <a href="/invoices" className="text-muted-foreground hover:text-foreground transition-colors">Rechnungen</a>
+              </nav>
+              <UserButton size="icon" />
+            </div>
+          </header>
+          {children}
+        </NeonAuthUIProvider>
       </body>
     </html>
   );
