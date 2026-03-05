@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 import { createNeonAuth } from "@neondatabase/auth/next/server";
 import { neon } from "@neondatabase/serverless";
 
+export const runtime = "nodejs";
+
 const auth = createNeonAuth({
   baseUrl: process.env.NEON_AUTH_BASE_URL!,
   cookies: {
@@ -23,38 +25,28 @@ export default async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Get session to check user role
-  const cookieHeader = request.headers.get("cookie") || "";
-  const sessionRes = await fetch(
-    `${process.env.NEON_AUTH_BASE_URL}/api/auth/get-session`,
-    {
-      headers: { Cookie: cookieHeader },
+  // Get session using the auth library directly (avoids unreliable HTTP fetch)
+  const session = await auth.api.getSession({ headers: request.headers });
+  const email = session?.user?.email?.toLowerCase();
+
+  if (email) {
+    const sql = neon(process.env.DATABASE_URL!);
+    const result = await sql`
+      SELECT role FROM app_users WHERE email = ${email} LIMIT 1
+    `;
+
+    if (result.length === 0) {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
-  );
 
-  if (sessionRes.ok) {
-    const data = await sessionRes.json();
-    const email = data?.user?.email?.toLowerCase();
+    // Forward role + email to downstream handlers via request headers
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-user-role", result[0].role);
+    requestHeaders.set("x-user-email", email);
 
-    if (email) {
-      const sql = neon(process.env.DATABASE_URL!);
-      const result = await sql`
-        SELECT role FROM app_users WHERE email = ${email} LIMIT 1
-      `;
-
-      if (result.length === 0) {
-        return NextResponse.redirect(new URL("/unauthorized", request.url));
-      }
-
-      // Forward role + email to downstream handlers via request headers
-      const requestHeaders = new Headers(request.headers);
-      requestHeaders.set("x-user-role", result[0].role);
-      requestHeaders.set("x-user-email", email);
-
-      return NextResponse.next({
-        request: { headers: requestHeaders },
-      });
-    }
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   return response;
