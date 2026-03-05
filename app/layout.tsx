@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NeonAuthUIProvider, UserButton } from "@neondatabase/auth/react";
 import { authClient } from "@/lib/auth/client";
@@ -30,11 +31,19 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <NeonAuthUIProvider authClient={authClient as any}>
+        <NeonAuthUIProvider
+          authClient={authClient as any}
+          credentials={false}
+          signUp={false}
+          social={{ providers: ["google"] }}
+        >
           <header className="border-b bg-card">
             <div className="max-w-5xl mx-auto px-4 h-10 flex items-center justify-between text-xs">
               <nav className="flex items-center gap-4">
-                <a href="/" className="font-semibold text-sm hover:text-foreground transition-colors">Rechnungs-Extraktor</a>
+                <a href="/" className="flex items-center gap-1.5 font-semibold text-sm hover:text-foreground transition-colors">
+                  <Image src="/icon.png" alt="" width={20} height={20} className="rounded-sm" />
+                  Rechnungs-Extraktor
+                </a>
                 <a href="/invoices" className="text-muted-foreground hover:text-foreground transition-colors">Rechnungen</a>
               </nav>
               <UserButton size="icon" />

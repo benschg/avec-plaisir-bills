@@ -87,11 +87,15 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Rechnungsdaten-Extraktor</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            PDF-Rechnung hochladen und strukturierte Daten mit Google Gemini KI extrahieren
-          </p>
+        <div className="flex items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon.png" alt="" width={56} height={56} className="rounded-lg" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Rechnungsdaten-Extraktor</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              PDF-Rechnung hochladen und strukturierte Daten mit Google Gemini KI extrahieren
+            </p>
+          </div>
         </div>
 
         <Separator />

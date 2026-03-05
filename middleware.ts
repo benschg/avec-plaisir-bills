@@ -1,4 +1,11 @@
-import { auth } from "@/lib/auth/server";
+import { createNeonAuth } from "@neondatabase/auth/next/server";
+
+const auth = createNeonAuth({
+  baseUrl: process.env.NEON_AUTH_BASE_URL!,
+  cookies: {
+    secret: process.env.NEON_AUTH_COOKIE_SECRET!,
+  },
+});
 
 export default auth.middleware({
   loginUrl: "/auth/sign-in",
@@ -6,13 +13,6 @@ export default auth.middleware({
 
 export const config = {
   matcher: [
-    /*
-     * Protect all routes except:
-     * - /auth/* (sign-in/sign-up pages)
-     * - /api/auth/* (auth API endpoints)
-     * - /_next/* (Next.js internals)
-     * - static files
-     */
-    "/((?!auth|api/auth|_next/static|_next/image|favicon.ico).*)",
+    "/((?!auth|api/auth|_next/static|_next/image|favicon.ico|icon.png).*)",
   ],
 };
