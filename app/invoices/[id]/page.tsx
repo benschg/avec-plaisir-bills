@@ -13,6 +13,7 @@ import { InvoiceSummaryCard } from "@/components/invoice-summary-card";
 import { AdditionalExpensesCard } from "@/components/additional-expenses-card";
 import type { AdditionalExpense } from "@/components/additional-expenses-card";
 import type { InvoiceData } from "@/lib/types";
+import { RequireAuth } from "@/components/require-auth";
 import type {
   InvoiceRow,
   LineItemRow,
@@ -74,6 +75,14 @@ function toInvoiceData(inv: FullInvoice): InvoiceData {
 }
 
 export default function InvoiceDetailPage() {
+  return (
+    <RequireAuth minRole="viewer">
+      <InvoiceDetailContent />
+    </RequireAuth>
+  );
+}
+
+function InvoiceDetailContent() {
   const params = useParams<{ id: string }>();
   const [invoice, setInvoice] = useState<FullInvoice | null>(null);
   const [additionalExpenses, setAdditionalExpenses] = useState<AdditionalExpense[]>([]);

@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { app_users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-export type Role = "admin" | "editor" | "viewer";
+export type Role = "admin" | "editor" | "viewer" | "no_access";
 
 declare module "next-auth" {
   interface Session {
@@ -37,13 +37,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               .from(app_users)
               .where(eq(app_users.email, email))
               .limit(1);
-            token.role = (result[0]?.role as Role) ?? "viewer";
+            token.role = (result[0]?.role as Role) ?? "no_access";
           } catch (err) {
             console.error("[auth] jwt role lookup error:", err);
-            token.role = token.role ?? "viewer";
+            token.role = token.role ?? "no_access";
           }
         } else {
-          token.role = "viewer";
+          token.role = "no_access";
         }
       }
 
@@ -51,7 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     session({ session, token }) {
       session.user.id = token.sub!;
-      session.user.role = (token.role as Role) ?? "viewer";
+      session.user.role = (token.role as Role) ?? "no_access";
       return session;
     },
   },
@@ -71,7 +71,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: normalizedEmail,
             name: user.name ?? null,
             image: user.image ?? null,
-            role: "viewer",
+            role: "no_access",
             created_at: now,
           })
           .onConflictDoUpdate({

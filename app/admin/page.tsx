@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RequireAuth } from "@/components/require-auth";
 
-type Role = "admin" | "editor" | "viewer";
+type Role = "admin" | "editor" | "viewer" | "no_access";
 
 interface AppUser {
   email: string;
@@ -17,15 +18,25 @@ const ROLE_LABELS: Record<Role, string> = {
   admin: "Admin",
   editor: "Editor",
   viewer: "Betrachter",
+  no_access: "Kein Zugang",
 };
 
 const ROLE_COLORS: Record<Role, string> = {
   admin: "bg-red-100 text-red-800",
   editor: "bg-blue-100 text-blue-800",
   viewer: "bg-gray-100 text-gray-800",
+  no_access: "bg-yellow-100 text-yellow-800",
 };
 
 export default function AdminPage() {
+  return (
+    <RequireAuth minRole="admin">
+      <AdminContent />
+    </RequireAuth>
+  );
+}
+
+function AdminContent() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState<Role>("viewer");
@@ -123,6 +134,7 @@ export default function AdminPage() {
           onChange={(e) => setNewRole(e.target.value as Role)}
           className="border rounded-md px-3 py-2 text-sm bg-background"
         >
+          <option value="no_access">Kein Zugang</option>
           <option value="viewer">Betrachter</option>
           <option value="editor">Editor</option>
           <option value="admin">Admin</option>

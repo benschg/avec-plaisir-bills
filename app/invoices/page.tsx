@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RequireAuth } from "@/components/require-auth";
 import type { Invoice, Vendor, Customer } from "@/lib/db/types";
 
 type InvoiceRow = Pick<
@@ -26,6 +27,14 @@ type InvoiceRow = Pick<
 };
 
 export default function InvoicesPage() {
+  return (
+    <RequireAuth minRole="viewer">
+      <InvoicesContent />
+    </RequireAuth>
+  );
+}
+
+function InvoicesContent() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);

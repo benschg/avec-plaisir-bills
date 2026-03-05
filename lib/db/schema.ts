@@ -124,9 +124,9 @@ export const app_users = pgTable("app_users", {
   id: text("id"),
   name: text("name"),
   image: text("image"),
-  role: text("role", { enum: ["admin", "editor", "viewer"] })
+  role: text("role", { enum: ["admin", "editor", "viewer", "no_access"] })
     .notNull()
-    .default("viewer"),
+    .default("no_access"),
   created_at: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

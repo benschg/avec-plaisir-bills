@@ -7,6 +7,7 @@ export const ROLE_HIERARCHY: Record<Role, number> = {
   admin: 3,
   editor: 2,
   viewer: 1,
+  no_access: 0,
 };
 
 export async function getSessionEmail(): Promise<string | null> {
