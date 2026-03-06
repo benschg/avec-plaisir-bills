@@ -51,12 +51,22 @@ export interface InvoiceSummary {
   finalProfitCHF: number;
 }
 
+export interface CalcSettings {
+  globalMargin: number;
+  globalMwst: string;
+  exchangeRate: number;
+  itemFinalPrices: Record<number, number | null>;
+  itemMwst: Record<number, string | null>;
+}
+
 interface InvoiceTableProps {
   data: InvoiceData;
   additionalExpenses?: { description: string; amount: number; currency: string }[];
   expenseFlags: boolean[];
   onExpenseToggle: (index: number) => void;
   onSummaryChange?: (summary: InvoiceSummary) => void;
+  initialSettings?: Partial<CalcSettings>;
+  onSettingsChange?: (settings: CalcSettings) => void;
 }
 
 function SearchImageButton({ query, fallback }: { query?: string; fallback: string }) {
@@ -97,17 +107,26 @@ function fmt(value: number, sign: string): string {
   return `${sign} ${value.toFixed(2)}`;
 }
 
-export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onExpenseToggle, onSummaryChange }: InvoiceTableProps) {
+export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onExpenseToggle, onSummaryChange, initialSettings, onSettingsChange }: InvoiceTableProps) {
   const sign = currencySign(data.currency);
   const sellSign = currencySign("CHF");
   const needsConversion = data.currency !== "CHF";
-  const [exchangeRate, setExchangeRate] = useState(1.0);
+  const [exchangeRate, setExchangeRate] = useState(initialSettings?.exchangeRate ?? 1.0);
   const rate = needsConversion ? exchangeRate : 1;
-  const [globalMargin, setGlobalMargin] = useState(100);
-  const [globalMwst, setGlobalMwst] = useState(DEFAULT_MWST);
-  const [itemFinalPrices, setItemFinalPrices] = useState<Record<number, number | null>>({});
-  const [itemMwst, setItemMwst] = useState<Record<number, string | null>>({});
+  const [globalMargin, setGlobalMargin] = useState(initialSettings?.globalMargin ?? 100);
+  const [globalMwst, setGlobalMwst] = useState(initialSettings?.globalMwst ?? DEFAULT_MWST);
+  const [itemFinalPrices, setItemFinalPrices] = useState<Record<number, number | null>>(initialSettings?.itemFinalPrices ?? {});
+  const [itemMwst, setItemMwst] = useState<Record<number, string | null>>(initialSettings?.itemMwst ?? {});
   const [descWidth, setDescWidth] = useState(288); // w-72 = 18rem = 288px
+
+  const settingsCallbackRef = useRef(onSettingsChange);
+  useEffect(() => { settingsCallbackRef.current = onSettingsChange; });
+
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) { mountedRef.current = true; return; }
+    settingsCallbackRef.current?.({ globalMargin, globalMwst, exchangeRate, itemFinalPrices, itemMwst });
+  }, [globalMargin, globalMwst, exchangeRate, itemFinalPrices, itemMwst]);
 
   const resizing = useRef(false);
   const startX = useRef(0);
@@ -227,11 +246,11 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
   };
 
   return (
-    <Card className="flex flex-col h-screen">
+    <Card className="flex flex-col h-screen print-auto">
       <CardHeader className="shrink-0">
         <div className="flex items-center justify-between gap-4">
           <CardTitle className="text-base">Positionen</CardTitle>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 no-print">
             {billExpensesTotal > 0 && (
               <span className="text-sm text-muted-foreground whitespace-nowrap">
                 Kosten: <span className="font-medium text-amber-600 dark:text-amber-400">{fmt(billExpensesTotal, sign)}</span>
@@ -323,9 +342,9 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
             <TableHeader className="sticky top-0 z-30 bg-muted">
               <TableRow>
                 {hasPosition && (
-                  <TableHead className="w-12 sticky z-20 bg-muted" style={{ left: posLeft }}>#</TableHead>
+                  <TableHead className="w-12 sticky z-20 bg-muted no-print" style={{ left: posLeft }}>#</TableHead>
                 )}
-                <TableHead className="w-10 text-center sticky z-20 bg-muted" style={{ left: expLeft }}>
+                <TableHead className="w-10 text-center sticky z-20 bg-muted no-print" style={{ left: expLeft }}>
                   <div>Kost.</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">Spesen</div>
                 </TableHead>
@@ -340,35 +359,35 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                   <div>Menge</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">Anzahl</div>
                 </TableHead>
-                <TableHead className="text-right w-28">
+                <TableHead className="text-right w-28 no-print">
                   <div>Einzelpreis</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">Einkauf/Stk.</div>
                 </TableHead>
-                {hasTaxRate && <TableHead className="text-right w-20">
+                {hasTaxRate && <TableHead className="text-right w-20 no-print">
                   <div>Steuer %</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">Einkauf</div>
                 </TableHead>}
-                <TableHead className="text-right w-28">
+                <TableHead className="text-right w-28 no-print">
                   <div>Gesamt</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">Einkauf total</div>
                 </TableHead>
-                <TableHead className="text-right w-28">
+                <TableHead className="text-right w-28 no-print">
                   <div>Angepasst</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">+ Spesen/Stk.</div>
                 </TableHead>
-                <TableHead className="text-right w-28">
+                <TableHead className="text-right w-28 no-print">
                   <div>Ang. Gesamt</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">+ Spesen total</div>
                 </TableHead>
-                {needsConversion && <TableHead className="text-right w-28">
+                {needsConversion && <TableHead className="text-right w-28 no-print">
                   <div>Gesamt CHF</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">umgerechnet</div>
                 </TableHead>}
-                <TableHead className="text-right w-20">
+                <TableHead className="text-right w-20 no-print">
                   <div>Marge %</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">Aufschlag</div>
                 </TableHead>
-                <TableHead className="text-right w-28">
+                <TableHead className="text-right w-28 no-print">
                   <div>Richtpreis</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">bei Marge inkl.</div>
                 </TableHead>
@@ -380,11 +399,11 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                   <div>MWST</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">Steuersatz</div>
                 </TableHead>
-                <TableHead className="text-right w-28">
+                <TableHead className="text-right w-28 no-print">
                   <div>Verkauf</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">exkl. MwSt/Stk.</div>
                 </TableHead>
-                <TableHead className="text-right w-28">
+                <TableHead className="text-right w-28 no-print">
                   <div>Verk. Gesamt</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">exkl. MwSt</div>
                 </TableHead>
@@ -392,11 +411,11 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                   <div>Ges. inkl.</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">Verkauf + MwSt</div>
                 </TableHead>
-                <TableHead className="text-right w-28">
+                <TableHead className="text-right w-28 no-print">
                   <div>Gewinn</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">pro Stk.</div>
                 </TableHead>
-                <TableHead className="text-right w-28">
+                <TableHead className="text-right w-28 no-print">
                   <div>Gew. Gesamt</div>
                   <div className="text-[10px] font-normal text-muted-foreground leading-tight">total</div>
                 </TableHead>
@@ -418,12 +437,12 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 return (
                   <TableRow
                     key={index}
-                    className={isExpense ? "bg-amber-50 dark:bg-amber-950/30" : ""}
+                    className={isExpense ? "bg-amber-50 dark:bg-amber-950/30 no-print" : ""}
                   >
                     {hasPosition && (
-                      <TableCell className={`text-muted-foreground sticky z-10 ${stickyBg}`} style={{ left: posLeft }}>{item.position}</TableCell>
+                      <TableCell className={`text-muted-foreground sticky z-10 no-print ${stickyBg}`} style={{ left: posLeft }}>{item.position}</TableCell>
                     )}
-                    <TableCell className={`text-center sticky z-10 ${stickyBg}`} style={{ left: expLeft }}>
+                    <TableCell className={`text-center sticky z-10 no-print ${stickyBg}`} style={{ left: expLeft }}>
                       <Checkbox
                         checked={isExpense}
                         onCheckedChange={() => onExpenseToggle(index)}
@@ -436,16 +455,16 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                       </div>
                     </TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">{fmt(item.unit_price, sign)}</TableCell>
+                    <TableCell className="text-right no-print">{fmt(item.unit_price, sign)}</TableCell>
                     {hasTaxRate && (
-                      <TableCell className="text-right">
+                      <TableCell className="text-right no-print">
                         {item.tax_rate != null ? `${item.tax_rate}%` : "-"}
                       </TableCell>
                     )}
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="text-right font-medium no-print">
                       {fmt(item.line_total, sign)}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right no-print">
                       {isExpense ? (
                         <span className="text-muted-foreground">--</span>
                       ) : (
@@ -454,7 +473,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right no-print">
                       {isExpense ? (
                         <span className="text-muted-foreground">--</span>
                       ) : (
@@ -464,7 +483,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                       )}
                     </TableCell>
                     {needsConversion && (
-                      <TableCell className="text-right">
+                      <TableCell className="text-right no-print">
                         {isExpense ? (
                           <span className="text-muted-foreground">--</span>
                         ) : (
@@ -475,11 +494,11 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                       </TableCell>
                     )}
                     {/* Marge % — read-only, effective margin */}
-                    <TableCell className="text-right text-muted-foreground">
+                    <TableCell className="text-right text-muted-foreground no-print">
                       {isExpense ? "--" : `${calc.margin.toFixed(1)}%`}
                     </TableCell>
                     {/* Richtpreis — calculated price at global margin incl MwSt (reference) */}
-                    <TableCell className="text-right font-medium text-muted-foreground">
+                    <TableCell className="text-right font-medium text-muted-foreground no-print">
                       {isExpense ? "--" : fmt(richtpreis, sellSign)}
                     </TableCell>
                     {/* Endpreis — editable final unit price incl MwSt */}
@@ -487,15 +506,20 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                       {isExpense ? (
                         <span className="text-muted-foreground">--</span>
                       ) : (
-                        <Input
-                          type="number"
-                          value={hasFinalPriceOverride ? itemFinalPrices[index]! : ""}
-                          placeholder={fmt(richtpreis, "")}
-                          onChange={(e) => handleItemFinalPriceChange(index, e.target.value)}
-                          className="w-24 h-7 text-right text-sm ml-auto"
-                          min={0}
-                          step={0.05}
-                        />
+                        <>
+                          <span className="hidden print-only">
+                            {fmt(hasFinalPriceOverride ? itemFinalPrices[index]! : richtpreis, sellSign)}
+                          </span>
+                          <Input
+                            type="number"
+                            value={hasFinalPriceOverride ? itemFinalPrices[index]! : ""}
+                            placeholder={fmt(richtpreis, "")}
+                            onChange={(e) => handleItemFinalPriceChange(index, e.target.value)}
+                            className="w-24 h-7 text-right text-sm ml-auto no-print"
+                            min={0}
+                            step={0.05}
+                          />
+                        </>
                       )}
                     </TableCell>
                     {/* MWST dropdown */}
@@ -503,30 +527,33 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                       {isExpense ? (
                         <span className="text-muted-foreground">--</span>
                       ) : (
-                        <Select
-                          value={hasMwstOverride ? itemMwst[index]! : "_global"}
-                          onValueChange={(v) => handleItemMwstChange(index, v)}
-                        >
-                          <SelectTrigger className="w-20 h-7 text-sm ml-auto">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="_global">{globalMwst}%</SelectItem>
-                            {MWST_RATES.map((rate) => (
-                              <SelectItem key={rate.value} value={rate.value}>
-                                {rate.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <>
+                          <span className="hidden print-only">{calc.mwstRate}%</span>
+                          <Select
+                            value={hasMwstOverride ? itemMwst[index]! : "_global"}
+                            onValueChange={(v) => handleItemMwstChange(index, v)}
+                          >
+                            <SelectTrigger className="w-20 h-7 text-sm ml-auto no-print">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="_global">{globalMwst}%</SelectItem>
+                              {MWST_RATES.map((rate) => (
+                                <SelectItem key={rate.value} value={rate.value}>
+                                  {rate.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </>
                       )}
                     </TableCell>
                     {/* Verkauf — sell price excl MwSt */}
-                    <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
+                    <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400 no-print">
                       {isExpense ? "--" : fmt(calc.sellPrice * rate, sellSign)}
                     </TableCell>
                     {/* Verk. Gesamt — sell total excl MwSt */}
-                    <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
+                    <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400 no-print">
                       {isExpense ? "--" : fmt(calc.sellTotal * rate, sellSign)}
                     </TableCell>
                     {/* Ges. inkl. — total incl MwSt */}
@@ -534,11 +561,11 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                       {isExpense ? "--" : fmt(calc.sellTotalInclMwst * rate, sellSign)}
                     </TableCell>
                     {/* Gewinn per unit */}
-                    <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
+                    <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400 no-print">
                       {isExpense ? "--" : fmt((item.quantity > 0 ? calc.profit / item.quantity : 0) * rate, sellSign)}
                     </TableCell>
                     {/* Gew. Gesamt */}
-                    <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
+                    <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400 no-print">
                       {isExpense ? "--" : fmt(calc.profit * rate, sellSign)}
                     </TableCell>
                   </TableRow>
@@ -546,8 +573,8 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
               })}
             </TableBody>
             <TableFooter className="sticky bottom-0 z-30 bg-muted">
-              {/* Zwischensumme */}
-              <TableRow>
+              {/* Screen footer rows */}
+              <TableRow className="no-print">
                 <TableCell colSpan={stickyColSpan} className="sticky left-0 z-20 bg-muted overflow-hidden truncate">Zwischensumme</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
                 <TableCell className="text-right">{fmt(data.subtotal, sign)}</TableCell>
@@ -561,8 +588,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 <TableCell />
                 <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmt(totals.profit * rate, sellSign)}</TableCell>
               </TableRow>
-              {/* MWST */}
-              <TableRow>
+              <TableRow className="no-print">
                 <TableCell colSpan={stickyColSpan} className="sticky left-0 z-20 bg-muted overflow-hidden truncate">MWST</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
                 <TableCell className="text-right">{fmt(data.tax_amount, sign)}</TableCell>
@@ -573,8 +599,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.mwst * rate, sellSign)}</TableCell>
                 <TableCell colSpan={2} />
               </TableRow>
-              {/* Gesamt */}
-              <TableRow className="font-bold">
+              <TableRow className="font-bold no-print">
                 <TableCell colSpan={stickyColSpan} className="sticky left-0 z-20 bg-muted overflow-hidden truncate">Gesamt</TableCell>
                 <TableCell colSpan={gapAfterDesc} />
                 <TableCell className="text-right">{fmt(data.total, sign)}</TableCell>
@@ -588,11 +613,27 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 <TableCell />
                 <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmt(totals.profit * rate, sellSign)}</TableCell>
               </TableRow>
+              {/* Print-only footer rows — matches print columns: Beschreibung, Menge, Endpreis, MWST, Ges.inkl. */}
+              <TableRow className="hidden print-only-row">
+                <TableCell colSpan={3}>Netto (exkl. MWST)</TableCell>
+                <TableCell />
+                <TableCell className="text-right font-medium">{fmt(totals.sellExcl * rate, sellSign)}</TableCell>
+              </TableRow>
+              <TableRow className="hidden print-only-row">
+                <TableCell colSpan={3}>MWST</TableCell>
+                <TableCell />
+                <TableCell className="text-right">{fmt(totals.mwst * rate, sellSign)}</TableCell>
+              </TableRow>
+              <TableRow className="hidden print-only-row font-bold">
+                <TableCell colSpan={3}>Gesamt inkl. MWST</TableCell>
+                <TableCell />
+                <TableCell className="text-right">{fmt(totals.sellIncl * rate, sellSign)}</TableCell>
+              </TableRow>
             </TableFooter>
           </Table>
           {/* Cover scrollbar gutter under frozen columns */}
           <div
-            className="absolute bottom-0 left-0 bg-background z-30 pointer-events-none"
+            className="absolute bottom-0 left-0 bg-background z-30 pointer-events-none no-print"
             style={{ width: `calc(${descLeft} + ${descWidth}px)`, height: 8 }}
           />
         </div>

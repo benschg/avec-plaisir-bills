@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -15,13 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { InvoiceDetails } from "@/components/invoice-details";
 import { InvoiceTable } from "@/components/invoice-table";
-import type { InvoiceSummary } from "@/components/invoice-table";
+import type { InvoiceSummary, CalcSettings } from "@/components/invoice-table";
 import { InvoiceSummaryCard } from "@/components/invoice-summary-card";
 import { AdditionalExpensesCard } from "@/components/additional-expenses-card";
 import type { AdditionalExpense } from "@/components/additional-expenses-card";
 import type { InvoiceData } from "@/lib/types";
 import { RequireAuth } from "@/components/require-auth";
-import { Trash2 } from "lucide-react";
+import { Trash2, Printer } from "lucide-react";
 import type {
   InvoiceRow,
   LineItemRow,
@@ -177,6 +177,27 @@ function InvoiceDetailContent() {
     [params.id, additionalExpenses]
   );
 
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const handleSettingsChange = useCallback(
+    (settings: CalcSettings) => {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        fetch(`/api/invoices/${params.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            global_margin: settings.globalMargin,
+            global_mwst: settings.globalMwst,
+            exchange_rate: settings.exchangeRate,
+            item_final_prices: settings.itemFinalPrices,
+            item_mwst: settings.itemMwst,
+          }),
+        });
+      }, 500);
+    },
+    [params.id]
+  );
+
   const handleDelete = useCallback(async () => {
     setDeleting(true);
     try {
@@ -233,7 +254,10 @@ function InvoiceDetailContent() {
             {invoice.file_name} &middot; Gespeichert {new Date(invoice.created_at).toLocaleDateString()}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 no-print">
+          <Button variant="outline" size="icon" onClick={() => window.print()} title="Drucken">
+            <Printer className="h-4 w-4" />
+          </Button>
           {invoice.file_path && (
             <Button asChild variant="outline">
               <a href={`/api/invoices/${params.id}/pdf`} target="_blank" rel="noopener noreferrer">
@@ -272,7 +296,7 @@ function InvoiceDetailContent() {
 
       <InvoiceDetails data={data} />
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start print-two-col">
         <AdditionalExpensesCard
           lineExpenses={lineExpenses}
           expenses={additionalExpenses}
@@ -290,6 +314,14 @@ function InvoiceDetailContent() {
         expenseFlags={expenseFlags}
         onExpenseToggle={(i) => setExpenseFlags((prev) => { const next = [...prev]; next[i] = !next[i]; return next; })}
         onSummaryChange={setSummary}
+        initialSettings={{
+          globalMargin: invoice.global_margin ?? 100,
+          globalMwst: invoice.global_mwst ?? "8.1",
+          exchangeRate: invoice.exchange_rate ?? 1,
+          itemFinalPrices: (invoice.item_final_prices as Record<number, number | null>) ?? {},
+          itemMwst: (invoice.item_mwst as Record<number, string | null>) ?? {},
+        }}
+        onSettingsChange={handleSettingsChange}
       />
     </div>
   );

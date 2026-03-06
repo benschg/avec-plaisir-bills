@@ -66,6 +66,11 @@ export const invoices = pgTable(
     notes: text("notes"),
     raw_extraction: jsonb("raw_extraction").notNull(),
     file_path: text("file_path"),
+    global_margin: numeric("global_margin", { precision: 5, scale: 1 }).default("100"),
+    global_mwst: text("global_mwst").default("8.1"),
+    exchange_rate: numeric("exchange_rate", { precision: 12, scale: 6 }).default("1"),
+    item_final_prices: jsonb("item_final_prices"),
+    item_mwst: jsonb("item_mwst"),
     created_at: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

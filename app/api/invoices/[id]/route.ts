@@ -39,7 +39,7 @@ export async function GET(
 
     // Convert numeric strings to numbers to match previous API shape
     const data = {
-      ...toNumbers(invoice, ["subtotal", "tax_amount", "total"]),
+      ...toNumbers(invoice, ["subtotal", "tax_amount", "total", "global_margin", "exchange_rate"]),
       line_items: invoice.line_items.map((li) =>
         toNumbers(li, ["quantity", "unit_price", "tax_rate", "line_total"])
       ),
@@ -49,6 +49,40 @@ export async function GET(
     };
 
     return NextResponse.json({ success: true, data });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const denied = await requireRole("editor");
+  if (denied) return denied;
+
+  try {
+    const { id } = await params;
+    const body = await request.json();
+
+    const allowed = ["global_margin", "global_mwst", "exchange_rate", "item_final_prices", "item_mwst"] as const;
+    const updates: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (key in body) updates[key] = body[key];
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ success: false, error: "No valid fields to update" }, { status: 400 });
+    }
+
+    // Convert numbers to strings for numeric columns
+    if (updates.global_margin != null) updates.global_margin = String(updates.global_margin);
+    if (updates.exchange_rate != null) updates.exchange_rate = String(updates.exchange_rate);
+
+    await db.update(invoices).set(updates).where(eq(invoices.id, id));
+
+    return NextResponse.json({ success: true });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ success: false, error: message }, { status: 500 });

@@ -17,10 +17,12 @@ export type PaymentInfo = InferSelectModel<typeof payment_info>;
 export type AdditionalExpense = InferSelectModel<typeof additional_expenses>;
 
 // API response types (numeric strings converted to number by API routes)
-export type InvoiceRow = Omit<Invoice, "subtotal" | "tax_amount" | "total"> & {
+export type InvoiceRow = Omit<Invoice, "subtotal" | "tax_amount" | "total" | "global_margin" | "exchange_rate"> & {
   subtotal: number;
   tax_amount: number;
   total: number;
+  global_margin: number | null;
+  exchange_rate: number | null;
 };
 
 export type LineItemRow = Omit<
