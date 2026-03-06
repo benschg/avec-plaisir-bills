@@ -115,6 +115,9 @@ function InvoiceDetailContent() {
               description: e.description,
               amount: e.amount,
               currency: e.currency,
+              ...(e.amount_original != null && e.currency_original
+                ? { amount_original: e.amount_original, currency_original: e.currency_original }
+                : {}),
             }))
           );
         } else {

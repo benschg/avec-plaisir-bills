@@ -42,7 +42,6 @@ export interface InvoiceSummary {
   purchaseTax: number;
   purchaseTotal: number;
   billExpensesTotal: number;
-  addlExpOrigCurrency: number;
   addlExpCHF: number;
   adjustedTotalOrigCurrency: number;
   sellExcl: number;
@@ -146,15 +145,9 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
   const stickyColSpan = (hasPosition ? 1 : 0) + 2; // # + Kost. + Beschreibung
   const gapAfterDesc = 1 + 1 + (hasTaxRate ? 1 : 0); // Menge + Einzelpreis + Steuer%
 
-  // Split additional expenses by currency (must be before expenseDist so they're included in distribution)
-  const addlExpOrigCurrency = additionalExpenses
-    .filter((e) => e.currency !== "CHF")
-    .reduce((sum, e) => sum + e.amount, 0);
-  const addlExpCHF = additionalExpenses
-    .filter((e) => e.currency === "CHF")
-    .reduce((sum, e) => sum + e.amount, 0);
-  // Convert additional expenses to original currency so they can be distributed alongside bill expenses
-  const addlExpInOrigCurrency = addlExpOrigCurrency + (needsConversion && rate > 0 ? addlExpCHF / rate : addlExpCHF);
+  // All additional expenses are in CHF — convert to invoice currency for distribution
+  const addlExpCHF = additionalExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const addlExpInOrigCurrency = needsConversion && rate > 0 ? addlExpCHF / rate : addlExpCHF;
 
   const expenseDist = calcExpenseDistribution(data.line_items, expenseFlags, addlExpInOrigCurrency);
   // Bill-only expenses for separate footer display
@@ -175,7 +168,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
   const totals = calcInvoiceTotals(lineCalcs, expenseFlags);
   // Final profit in CHF: additional expenses are distributed into sell prices but represent a real
   // external cost, so they must also be deducted from profit to get the true economic margin.
-  const finalProfitCHF = (totals.profit - addlExpOrigCurrency) * rate - addlExpCHF;
+  const finalProfitCHF = totals.profit * rate - addlExpCHF;
 
   const adjustedTotalSum = data.line_items.reduce((sum, item, i) => {
     if (expenseFlags[i]) return sum;
@@ -193,7 +186,6 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
     purchaseTax: data.tax_amount,
     purchaseTotal: data.total,
     billExpensesTotal,
-    addlExpOrigCurrency,
     addlExpCHF,
     adjustedTotalOrigCurrency: adjustedTotalSum,
     sellExcl: totals.sellExcl * rate,
@@ -202,7 +194,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
     profit: totals.profit * rate,
     finalProfitCHF,
   }), [data.currency, data.subtotal, data.tax_amount, data.total, needsConversion, rate,
-      billExpensesTotal, addlExpOrigCurrency, addlExpCHF, adjustedTotalSum,
+      billExpensesTotal, addlExpCHF, adjustedTotalSum,
       totals.sellExcl, totals.mwst, totals.sellIncl, totals.profit, finalProfitCHF]);
 
   useEffect(() => { summaryCallbackRef.current?.(summary); }, [summary]);

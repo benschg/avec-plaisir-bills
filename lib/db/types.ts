@@ -33,8 +33,9 @@ export type LineItemRow = Omit<
   line_total: number;
 };
 
-export type AdditionalExpenseRow = Omit<AdditionalExpense, "amount"> & {
+export type AdditionalExpenseRow = Omit<AdditionalExpense, "amount" | "amount_original"> & {
   amount: number;
+  amount_original: number | null;
 };
 
 // Insert types (equivalent to TablesInsert<"tableName">)

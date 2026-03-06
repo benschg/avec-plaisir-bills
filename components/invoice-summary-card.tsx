@@ -42,14 +42,14 @@ export function InvoiceSummaryCard({ summary }: Props) {
   const {
     currency, needsConversion, rate,
     purchaseSubtotal, purchaseTax, purchaseTotal,
-    billExpensesTotal, addlExpOrigCurrency, addlExpCHF,
+    billExpensesTotal, addlExpCHF,
     adjustedTotalOrigCurrency,
     sellExcl, mwst, sellIncl, finalProfitCHF,
   } = summary;
 
   const sign = currency;
   const chf = "CHF";
-  const hasExpenses = billExpensesTotal > 0 || addlExpOrigCurrency > 0 || addlExpCHF > 0;
+  const hasExpenses = billExpensesTotal > 0 || addlExpCHF > 0;
   const marginPct = sellIncl > 0 ? (finalProfitCHF / sellIncl) * 100 : 0;
 
   return (
@@ -70,14 +70,6 @@ export function InvoiceSummaryCard({ summary }: Props) {
               label="Kosten (Rechnung)"
               value={fmt(billExpensesTotal, sign)}
               color="text-amber-700 dark:text-amber-400"
-              indent
-            />
-          )}
-          {addlExpOrigCurrency > 0 && (
-            <SummaryRow
-              label={`Zusatzkosten (${sign})`}
-              value={fmt(addlExpOrigCurrency, sign)}
-              color="text-red-700 dark:text-red-400"
               indent
             />
           )}

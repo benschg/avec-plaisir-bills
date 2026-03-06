@@ -44,7 +44,7 @@ export async function GET(
         toNumbers(li, ["quantity", "unit_price", "tax_rate", "line_total"])
       ),
       additional_expenses: invoice.additional_expenses.map((e) =>
-        toNumbers(e, ["amount"])
+        toNumbers(e, ["amount", "amount_original"])
       ),
     };
 

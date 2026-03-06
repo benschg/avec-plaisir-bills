@@ -13,19 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export interface AdditionalExpense {
   id?: string;
   description: string;
   amount: number;
   currency: string;
+  amount_original?: number;
+  currency_original?: string;
 }
 
 interface LineExpense {
@@ -58,15 +53,17 @@ export function AdditionalExpensesCard({
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState(invoiceCurrency);
-  const showCurrencySelect = invoiceCurrency !== "CHF";
+  const [amountCHF, setAmountCHF] = useState("");
+  const [amountOriginal, setAmountOriginal] = useState("");
+  const [currencyOriginal, setCurrencyOriginal] = useState(invoiceCurrency);
+  const showOriginalFields = invoiceCurrency !== "CHF";
 
   const openAdd = () => {
     setEditingIndex(null);
     setDescription("");
-    setAmount("");
-    setCurrency(invoiceCurrency);
+    setAmountCHF("");
+    setAmountOriginal("");
+    setCurrencyOriginal(invoiceCurrency);
     setOpen(true);
   };
 
@@ -74,15 +71,24 @@ export function AdditionalExpensesCard({
     const exp = expenses[index];
     setEditingIndex(index);
     setDescription(exp.description);
-    setAmount(String(exp.amount));
-    setCurrency(exp.currency);
+    setAmountCHF(String(exp.amount));
+    setAmountOriginal(exp.amount_original != null ? String(exp.amount_original) : "");
+    setCurrencyOriginal(exp.currency_original || invoiceCurrency);
     setOpen(true);
   };
 
   const handleSave = () => {
-    const numericAmount = parseFloat(amount);
-    if (!description || isNaN(numericAmount) || numericAmount <= 0) return;
-    const expense: AdditionalExpense = { description, amount: numericAmount, currency };
+    const numCHF = parseFloat(amountCHF);
+    if (!description || isNaN(numCHF) || numCHF <= 0) return;
+    const numOriginal = parseFloat(amountOriginal);
+    const expense: AdditionalExpense = {
+      description,
+      amount: numCHF,
+      currency: "CHF",
+      ...(showOriginalFields && !isNaN(numOriginal) && numOriginal > 0
+        ? { amount_original: numOriginal, currency_original: currencyOriginal }
+        : {}),
+    };
     if (editingIndex !== null) {
       onUpdateExpense(editingIndex, expense);
     } else {
@@ -91,17 +97,9 @@ export function AdditionalExpensesCard({
     setOpen(false);
   };
 
-  // Totals by currency across all expenses
+  // Totals — all additional expenses are now in CHF
   const lineTotal = lineExpenses.reduce((s, e) => s + e.amount, 0);
-  const addlByInvoiceCurrency = expenses
-    .filter((e) => e.currency === invoiceCurrency)
-    .reduce((s, e) => s + e.amount, 0);
-  const addlByCHF = expenses
-    .filter((e) => e.currency === "CHF" && e.currency !== invoiceCurrency)
-    .reduce((s, e) => s + e.amount, 0);
-
-  const grandInvoiceCurrency = lineTotal + addlByInvoiceCurrency;
-  const hasGrandCHF = addlByCHF > 0;
+  const addlTotalCHF = expenses.reduce((s, e) => s + e.amount, 0);
 
   const hasAny = lineExpenses.length > 0 || expenses.length > 0;
 
@@ -174,7 +172,12 @@ export function AdditionalExpensesCard({
                   <X className="h-3 w-3" />
                 </Button>
                 <span className="font-medium text-red-700 dark:text-red-400 whitespace-nowrap tabular-nums">
-                  {fmt(exp.amount, exp.currency)}
+                  {fmt(exp.amount, "CHF")}
+                  {exp.amount_original != null && exp.currency_original && (
+                    <span className="text-muted-foreground text-xs ml-1">
+                      ({fmt(exp.amount_original, exp.currency_original)})
+                    </span>
+                  )}
                 </span>
               </div>
             ))}
@@ -182,19 +185,19 @@ export function AdditionalExpensesCard({
             {/* Grand Total */}
             {hasAny && (
               <div className="border-t mt-2 pt-2 space-y-0.5">
-                {grandInvoiceCurrency > 0 && (
+                {lineTotal > 0 && (
                   <div className="flex justify-between items-center gap-4">
-                    <span className="font-semibold">Gesamt</span>
+                    <span className="font-semibold">Rechnung</span>
                     <span className="font-bold tabular-nums whitespace-nowrap">
-                      {fmt(grandInvoiceCurrency, invoiceCurrency)}
+                      {fmt(lineTotal, invoiceCurrency)}
                     </span>
                   </div>
                 )}
-                {hasGrandCHF && (
-                  <div className="flex justify-between items-center gap-4 pl-12">
-                    <span className="text-muted-foreground text-xs">+ separat</span>
+                {addlTotalCHF > 0 && (
+                  <div className="flex justify-between items-center gap-4">
+                    <span className="font-semibold">+ Separat</span>
                     <span className="font-bold tabular-nums whitespace-nowrap text-red-700 dark:text-red-400">
-                      {fmt(addlByCHF, "CHF")}
+                      {fmt(addlTotalCHF, "CHF")}
                     </span>
                   </div>
                 )}
@@ -223,32 +226,31 @@ export function AdditionalExpensesCard({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dlg-amount">Betrag</Label>
-              <div className="flex gap-2">
+              <Label htmlFor="dlg-amount-chf">Betrag (CHF)</Label>
+              <Input
+                id="dlg-amount-chf"
+                type="number"
+                value={amountCHF}
+                onChange={(e) => setAmountCHF(e.target.value)}
+                placeholder="12.34"
+                onKeyDown={(e) => e.key === "Enter" && handleSave()}
+              />
+            </div>
+            {showOriginalFields && (
+              <div className="space-y-2">
+                <Label htmlFor="dlg-amount-orig" className="text-muted-foreground">
+                  Originalbetrag ({invoiceCurrency}) — optional
+                </Label>
                 <Input
-                  id="dlg-amount"
+                  id="dlg-amount-orig"
                   type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="12.34"
-                  className="flex-1"
+                  value={amountOriginal}
+                  onChange={(e) => setAmountOriginal(e.target.value)}
+                  placeholder="10.00"
                   onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 />
-                {showCurrencySelect ? (
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={invoiceCurrency}>{invoiceCurrency}</SelectItem>
-                      <SelectItem value="CHF">CHF</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <span className="flex items-center text-sm text-muted-foreground px-2">CHF</span>
-                )}
               </div>
-            </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Abbrechen</Button>

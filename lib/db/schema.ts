@@ -140,5 +140,7 @@ export const additional_expenses = pgTable("additional_expenses", {
   description: text("description").notNull(),
   amount: numeric("amount").notNull(),
   currency: text("currency").notNull().default("CHF"),
+  amount_original: numeric("amount_original"),
+  currency_original: text("currency_original"),
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });

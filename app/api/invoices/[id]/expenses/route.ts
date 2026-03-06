@@ -12,9 +12,9 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { description, amount, currency } = body;
+    const { description, amount, amount_original, currency_original } = body;
 
-    if (!description || amount == null || !currency) {
+    if (!description || amount == null) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
@@ -24,13 +24,20 @@ export async function POST(
         invoice_id: id,
         description,
         amount: String(amount),
-        currency,
+        currency: "CHF",
+        ...(amount_original != null && currency_original
+          ? { amount_original: String(amount_original), currency_original }
+          : {}),
       })
       .returning();
 
     return NextResponse.json({
       success: true,
-      data: { ...data, amount: Number(data.amount) },
+      data: {
+        ...data,
+        amount: Number(data.amount),
+        amount_original: data.amount_original != null ? Number(data.amount_original) : null,
+      },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
