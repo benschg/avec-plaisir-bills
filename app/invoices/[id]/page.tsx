@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { InvoiceDetails } from "@/components/invoice-details";
 import { InvoiceTable } from "@/components/invoice-table";
 import type { InvoiceSummary } from "@/components/invoice-table";
@@ -14,6 +21,7 @@ import { AdditionalExpensesCard } from "@/components/additional-expenses-card";
 import type { AdditionalExpense } from "@/components/additional-expenses-card";
 import type { InvoiceData } from "@/lib/types";
 import { RequireAuth } from "@/components/require-auth";
+import { Trash2 } from "lucide-react";
 import type {
   InvoiceRow,
   LineItemRow,
@@ -84,12 +92,15 @@ export default function InvoiceDetailPage() {
 
 function InvoiceDetailContent() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [invoice, setInvoice] = useState<FullInvoice | null>(null);
   const [additionalExpenses, setAdditionalExpenses] = useState<AdditionalExpense[]>([]);
   const [expenseFlags, setExpenseFlags] = useState<boolean[]>([]);
   const [summary, setSummary] = useState<InvoiceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetch(`/api/invoices/${params.id}`)
@@ -163,6 +174,25 @@ function InvoiceDetailContent() {
     [params.id, additionalExpenses]
   );
 
+  const handleDelete = useCallback(async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/invoices/${params.id}`, { method: "DELETE" });
+      const result = await res.json();
+      if (result.success) {
+        router.push("/invoices");
+      } else {
+        setError(result.error || "Rechnung konnte nicht gelöscht werden");
+        setDeleteOpen(false);
+      }
+    } catch {
+      setError("Rechnung konnte nicht gelöscht werden");
+      setDeleteOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  }, [params.id, router]);
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -208,10 +238,31 @@ function InvoiceDetailContent() {
               </a>
             </Button>
           )}
+          <Button variant="destructive" size="icon" onClick={() => setDeleteOpen(true)} title="Rechnung löschen">
+            <Trash2 className="h-4 w-4" />
+          </Button>
           <Button asChild variant="outline">
             <Link href="/invoices">Zurück zu Rechnungen</Link>
           </Button>
         </div>
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Rechnung löschen</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Rechnung <span className="font-medium text-foreground">{invoice.invoice_number}</span> und alle zugehörigen Daten werden unwiderruflich gelöscht.
+            </p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                Abbrechen
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                {deleting ? "Wird gelöscht..." : "Endgültig löschen"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Separator />

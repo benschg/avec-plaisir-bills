@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { invoices } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/auth/role";
 
 function toNumbers<T extends Record<string, unknown>>(
   obj: T,
@@ -48,6 +49,25 @@ export async function GET(
     };
 
     return NextResponse.json({ success: true, data });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const denied = await requireRole("editor");
+  if (denied) return denied;
+
+  try {
+    const { id } = await params;
+
+    await db.delete(invoices).where(eq(invoices.id, id));
+
+    return NextResponse.json({ success: true });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
