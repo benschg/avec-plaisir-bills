@@ -20,7 +20,7 @@ function InfoRow({ label, value }: { label: string; value?: string }) {
 
 export function InvoiceDetails({ data }: InvoiceDetailsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print-break-avoid">
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Rechnungsinfo</CardTitle>

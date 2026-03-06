@@ -125,6 +125,115 @@
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Print styles                                                        */
+/* ------------------------------------------------------------------ */
+@media print {
+  /* Force light colors */
+  :root { color-scheme: light; }
+  body { background: white !important; color: black !important; }
+
+  /* Hide UI chrome */
+  header, dialog, [role="dialog"],
+  [data-slot="slider"],
+  .no-print { display: none !important; }
+
+  /* Show print-only elements */
+  .print-only { display: inline !important; }
+  .print-only-row { display: table-row !important; }
+  .print-only-cell { display: table-cell !important; }
+  .print-auto { height: auto !important; }
+
+  /* Remove card styling for flat print */
+  [data-slot="card"] {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  /* Only small info/summary cards avoid page break; the table card spans pages */
+  .print-two-col [data-slot="card"] { break-inside: avoid; }
+  .print-break-avoid { break-inside: avoid; }
+  [data-slot="card-header"],
+  [data-slot="card-content"] {
+    padding: 0 !important;
+  }
+
+  /* Kill all viewport-height and flex-height constraints */
+  .h-screen { height: auto !important; }
+  .flex-1 { flex: none !important; }
+  .min-h-0 { min-height: unset !important; }
+  .overflow-hidden { overflow: visible !important; }
+
+  /* Compact spacing for the page container */
+  .space-y-6 > * + * { margin-top: 0.25rem !important; }
+  .gap-4 { gap: 0.25rem !important; }
+  .py-8 { padding-top: 0.25rem !important; padding-bottom: 0 !important; }
+  .pb-3 { padding-bottom: 0.125rem !important; }
+
+  /* Info cards: small, tight text */
+  [data-slot="card-header"] [data-slot="card-title"] {
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+  }
+  [data-slot="card-content"] .text-sm {
+    font-size: 9px !important;
+    line-height: 1.3 !important;
+  }
+  [data-slot="card-content"] .space-y-2 > * + * {
+    margin-top: 0 !important;
+  }
+
+  /* Separator: thin line */
+  [data-slot="separator"] { margin: 2px 0 !important; }
+
+  /* Compact header */
+  h1 { font-size: 14px !important; }
+  .text-2xl { font-size: 14px !important; }
+
+  /* Expenses + Summary: forced two-column in print */
+  .print-two-col {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.25rem 1rem !important;
+  }
+  .print-two-col button { display: none !important; }
+
+  /* Table: remove scroll container, fit to page */
+  .frozen-scroll {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+  .rounded-md.border { border: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table { font-size: 9px !important; table-layout: auto !important; width: 100% !important; }
+  th, td {
+    position: static !important;
+    background: white !important;
+    box-shadow: none !important;
+    padding: 2px 4px !important;
+    white-space: nowrap !important;
+  }
+  thead { position: static !important; }
+  tfoot { position: static !important; display: table-row-group !important; }
+  tr { break-inside: avoid; }
+
+  /* Inputs/selects: show as plain text */
+  input, select, [data-slot="select-trigger"] {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    height: auto !important;
+    appearance: none !important;
+  }
+
+  /* Full width layout */
+  .max-w-7xl, .max-w-5xl { max-width: 100% !important; }
+
+  /* Page setup */
+  @page { margin: 10mm; size: landscape; }
+}
+
 /* Offset horizontal scrollbar to start after frozen columns */
 .frozen-scroll::-webkit-scrollbar {
   width: 4px;
