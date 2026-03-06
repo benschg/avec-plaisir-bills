@@ -29,7 +29,8 @@ import {
   calcLineItem,
   calcInvoiceTotals,
   calcExpenseDistribution,
-  resolveMargin,
+  calcSellPrice,
+  calcMarginFromFinalPrice,
   resolveMwst,
 } from "@/lib/pricing";
 
@@ -103,9 +104,9 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
   const needsConversion = data.currency !== "CHF";
   const [exchangeRate, setExchangeRate] = useState(1.0);
   const rate = needsConversion ? exchangeRate : 1;
-  const [globalMargin, setGlobalMargin] = useState(0);
+  const [globalMargin, setGlobalMargin] = useState(100);
   const [globalMwst, setGlobalMwst] = useState(DEFAULT_MWST);
-  const [itemMargins, setItemMargins] = useState<Record<number, number | null>>({});
+  const [itemFinalPrices, setItemFinalPrices] = useState<Record<number, number | null>>({});
   const [itemMwst, setItemMwst] = useState<Record<number, string | null>>({});
   const [descWidth, setDescWidth] = useState(288); // w-72 = 18rem = 288px
 
@@ -163,9 +164,12 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
     if (expenseFlags[i]) {
       return calcLineItem(item, 0, 0);
     }
-    const margin = resolveMargin(i, itemMargins, globalMargin);
     const mwstRate = resolveMwst(i, itemMwst, globalMwst);
-    return calcLineItem(item, margin, mwstRate, expenseDist.adjustedUnitPriceByIndex[i]);
+    const adjustedUnitPrice = expenseDist.adjustedUnitPriceByIndex[i];
+    const margin = itemFinalPrices[i] != null
+      ? calcMarginFromFinalPrice(itemFinalPrices[i]! / rate, adjustedUnitPrice, mwstRate)
+      : globalMargin;
+    return calcLineItem(item, margin, mwstRate, adjustedUnitPrice);
   });
 
   const totals = calcInvoiceTotals(lineCalcs, expenseFlags);
@@ -203,9 +207,9 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
 
   useEffect(() => { summaryCallbackRef.current?.(summary); }, [summary]);
 
-  const handleItemMarginChange = (index: number, value: string) => {
+  const handleItemFinalPriceChange = (index: number, value: string) => {
     if (value === "") {
-      setItemMargins((prev) => {
+      setItemFinalPrices((prev) => {
         const next = { ...prev };
         delete next[index];
         return next;
@@ -213,7 +217,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
     } else {
       const num = parseFloat(value);
       if (!isNaN(num)) {
-        setItemMargins((prev) => ({ ...prev, [index]: num }));
+        setItemFinalPrices((prev) => ({ ...prev, [index]: num }));
       }
     }
   };
@@ -279,8 +283,8 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
               <Slider
                 value={[globalMargin]}
                 onValueChange={([v]) => setGlobalMargin(v)}
-                min={0}
-                max={200}
+                min={100}
+                max={400}
                 step={1}
                 className="w-32"
               />
@@ -329,7 +333,10 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 {hasPosition && (
                   <TableHead className="w-12 sticky z-20 bg-muted" style={{ left: posLeft }}>#</TableHead>
                 )}
-                <TableHead className="w-10 text-center sticky z-20 bg-muted" style={{ left: expLeft }}>Kost.</TableHead>
+                <TableHead className="w-10 text-center sticky z-20 bg-muted" style={{ left: expLeft }}>
+                  <div>Kost.</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">Spesen</div>
+                </TableHead>
                 <TableHead className="sticky z-20 bg-muted shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]" style={{ left: descLeft, width: descWidth }}>
                   Beschreibung
                   <div
@@ -337,29 +344,81 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/30 active:bg-primary/50"
                   />
                 </TableHead>
-                <TableHead className="text-right w-20">Menge</TableHead>
-                <TableHead className="text-right w-28">Einzelpreis</TableHead>
-                {hasTaxRate && <TableHead className="text-right w-20">Steuer %</TableHead>}
-                <TableHead className="text-right w-28">Gesamt</TableHead>
-                <TableHead className="text-right w-28">Angepasst</TableHead>
-                <TableHead className="text-right w-28">Ang. Gesamt</TableHead>
-                {needsConversion && <TableHead className="text-right w-28">Gesamt CHF</TableHead>}
-                <TableHead className="text-right w-20">Marge %</TableHead>
-                <TableHead className="text-right w-28">Verkauf</TableHead>
-                <TableHead className="text-right w-28">Verk. Gesamt</TableHead>
-                <TableHead className="text-right w-28">Gewinn</TableHead>
-                <TableHead className="text-right w-28">Gew. Gesamt</TableHead>
-                <TableHead className="text-right w-20">MWST</TableHead>
-                <TableHead className="text-right w-28">Verk. inkl.</TableHead>
-                <TableHead className="text-right w-28">Ges. inkl.</TableHead>
+                <TableHead className="text-right w-20">
+                  <div>Menge</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">Anzahl</div>
+                </TableHead>
+                <TableHead className="text-right w-28">
+                  <div>Einzelpreis</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">Einkauf/Stk.</div>
+                </TableHead>
+                {hasTaxRate && <TableHead className="text-right w-20">
+                  <div>Steuer %</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">Einkauf</div>
+                </TableHead>}
+                <TableHead className="text-right w-28">
+                  <div>Gesamt</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">Einkauf total</div>
+                </TableHead>
+                <TableHead className="text-right w-28">
+                  <div>Angepasst</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">+ Spesen/Stk.</div>
+                </TableHead>
+                <TableHead className="text-right w-28">
+                  <div>Ang. Gesamt</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">+ Spesen total</div>
+                </TableHead>
+                {needsConversion && <TableHead className="text-right w-28">
+                  <div>Gesamt CHF</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">umgerechnet</div>
+                </TableHead>}
+                <TableHead className="text-right w-20">
+                  <div>Marge %</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">Aufschlag</div>
+                </TableHead>
+                <TableHead className="text-right w-28">
+                  <div>Richtpreis</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">bei Marge inkl.</div>
+                </TableHead>
+                <TableHead className="text-right w-28">
+                  <div>Endpreis</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">Verkauf inkl.</div>
+                </TableHead>
+                <TableHead className="text-right w-20">
+                  <div>MWST</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">Steuersatz</div>
+                </TableHead>
+                <TableHead className="text-right w-28">
+                  <div>Verkauf</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">exkl. MwSt/Stk.</div>
+                </TableHead>
+                <TableHead className="text-right w-28">
+                  <div>Verk. Gesamt</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">exkl. MwSt</div>
+                </TableHead>
+                <TableHead className="text-right w-28">
+                  <div>Ges. inkl.</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">Verkauf + MwSt</div>
+                </TableHead>
+                <TableHead className="text-right w-28">
+                  <div>Gewinn</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">pro Stk.</div>
+                </TableHead>
+                <TableHead className="text-right w-28">
+                  <div>Gew. Gesamt</div>
+                  <div className="text-[10px] font-normal text-muted-foreground leading-tight">total</div>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.line_items.map((item, index) => {
                 const calc = lineCalcs[index];
                 const isExpense = expenseFlags[index];
-                const hasMarginOverride = itemMargins[index] != null;
+                const hasFinalPriceOverride = itemFinalPrices[index] != null;
                 const hasMwstOverride = itemMwst[index] != null;
+                const mwstRate = resolveMwst(index, itemMwst, globalMwst);
+                const adjustedUnitPrice = expenseDist.adjustedUnitPriceByIndex[index];
+                const richtpreis = calcSellPrice(adjustedUnitPrice, globalMargin) * (1 + mwstRate / 100) * rate;
                 const stickyBg = isExpense
                   ? "bg-amber-50 dark:bg-amber-950"
                   : "bg-background";
@@ -423,33 +482,31 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                         )}
                       </TableCell>
                     )}
+                    {/* Marge % — read-only, effective margin */}
+                    <TableCell className="text-right text-muted-foreground">
+                      {isExpense ? "--" : `${calc.margin.toFixed(1)}%`}
+                    </TableCell>
+                    {/* Richtpreis — calculated price at global margin incl MwSt (reference) */}
+                    <TableCell className="text-right font-medium text-muted-foreground">
+                      {isExpense ? "--" : fmt(richtpreis, sellSign)}
+                    </TableCell>
+                    {/* Endpreis — editable final unit price incl MwSt */}
                     <TableCell className="text-right">
                       {isExpense ? (
                         <span className="text-muted-foreground">--</span>
                       ) : (
                         <Input
                           type="number"
-                          value={hasMarginOverride ? itemMargins[index]! : ""}
-                          placeholder={String(globalMargin)}
-                          onChange={(e) => handleItemMarginChange(index, e.target.value)}
-                          className="w-16 h-7 text-right text-sm ml-auto"
+                          value={hasFinalPriceOverride ? itemFinalPrices[index]! : ""}
+                          placeholder={fmt(richtpreis, "")}
+                          onChange={(e) => handleItemFinalPriceChange(index, e.target.value)}
+                          className="w-24 h-7 text-right text-sm ml-auto"
                           min={0}
-                          max={999}
+                          step={0.05}
                         />
                       )}
                     </TableCell>
-                    <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : fmt(calc.sellPrice * rate, sellSign)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : fmt(calc.sellTotal * rate, sellSign)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
-                      {isExpense ? "--" : fmt((item.quantity > 0 ? calc.profit / item.quantity : 0) * rate, sellSign)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
-                      {isExpense ? "--" : fmt(calc.profit * rate, sellSign)}
-                    </TableCell>
+                    {/* MWST dropdown */}
                     <TableCell className="text-right">
                       {isExpense ? (
                         <span className="text-muted-foreground">--</span>
@@ -472,11 +529,25 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                         </Select>
                       )}
                     </TableCell>
+                    {/* Verkauf — sell price excl MwSt */}
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : fmt(calc.sellPriceInclMwst * rate, sellSign)}
+                      {isExpense ? "--" : fmt(calc.sellPrice * rate, sellSign)}
                     </TableCell>
+                    {/* Verk. Gesamt — sell total excl MwSt */}
+                    <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
+                      {isExpense ? "--" : fmt(calc.sellTotal * rate, sellSign)}
+                    </TableCell>
+                    {/* Ges. inkl. — total incl MwSt */}
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
                       {isExpense ? "--" : fmt(calc.sellTotalInclMwst * rate, sellSign)}
+                    </TableCell>
+                    {/* Gewinn per unit */}
+                    <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
+                      {isExpense ? "--" : fmt((item.quantity > 0 ? calc.profit / item.quantity : 0) * rate, sellSign)}
+                    </TableCell>
+                    {/* Gew. Gesamt */}
+                    <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
+                      {isExpense ? "--" : fmt(calc.profit * rate, sellSign)}
                     </TableCell>
                   </TableRow>
                 );
@@ -491,12 +562,12 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 <TableCell />
                 <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum, sign)}</TableCell>
                 {needsConversion && <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum * rate, sellSign)}</TableCell>}
-                <TableCell colSpan={2} />
+                <TableCell colSpan={4} />
+                <TableCell />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellExcl * rate, sellSign)}</TableCell>
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellIncl * rate, sellSign)}</TableCell>
                 <TableCell />
                 <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmt(totals.profit * rate, sellSign)}</TableCell>
-                <TableCell colSpan={2} />
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellIncl * rate, sellSign)}</TableCell>
               </TableRow>
               {/* MWST */}
               <TableRow>
@@ -506,8 +577,9 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 <TableCell />
                 <TableCell />
                 {needsConversion && <TableCell />}
-                <TableCell colSpan={7} />
+                <TableCell colSpan={6} />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.mwst * rate, sellSign)}</TableCell>
+                <TableCell colSpan={2} />
               </TableRow>
               {/* Gesamt */}
               <TableRow className="font-bold">
@@ -517,12 +589,12 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 <TableCell />
                 <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum, sign)}</TableCell>
                 {needsConversion && <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum * rate, sellSign)}</TableCell>}
-                <TableCell colSpan={2} />
+                <TableCell colSpan={4} />
+                <TableCell />
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellExcl * rate, sellSign)}</TableCell>
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellIncl * rate, sellSign)}</TableCell>
                 <TableCell />
                 <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmt(totals.profit * rate, sellSign)}</TableCell>
-                <TableCell colSpan={2} />
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellIncl * rate, sellSign)}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>

@@ -198,6 +198,32 @@ export function calcInvoiceTotals(
 }
 
 // ---------------------------------------------------------------------------
+// Back-calculate margin from a user-set final price
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive the effective margin % from a final selling price that includes MWST.
+ *
+ * Formula (inverse of calcSellPrice + MWST):
+ *   sellPriceExcl = finalPriceInclMwst / (1 + mwstRate / 100)
+ *   margin        = ((sellPriceExcl / adjustedUnitPrice) − 1) × 100
+ *
+ * @param finalPriceInclMwst  The user-set unit selling price including MWST.
+ * @param adjustedUnitPrice   Cost base per unit (after expense distribution).
+ * @param mwstRate            MWST rate % applied to this item.
+ * @returns                   The effective margin percentage.
+ */
+export function calcMarginFromFinalPrice(
+  finalPriceInclMwst: number,
+  adjustedUnitPrice: number,
+  mwstRate: number
+): number {
+  if (adjustedUnitPrice === 0) return 0;
+  const sellPriceExcl = finalPriceInclMwst / (1 + mwstRate / 100);
+  return ((sellPriceExcl / adjustedUnitPrice) - 1) * 100;
+}
+
+// ---------------------------------------------------------------------------
 // Helpers for resolving per-item overrides
 // ---------------------------------------------------------------------------
 
