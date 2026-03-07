@@ -224,6 +224,99 @@ export function calcMarginFromFinalPrice(
 }
 
 // ---------------------------------------------------------------------------
+// Per-row column display values (CHF-converted)
+// ---------------------------------------------------------------------------
+
+export interface ColumnValues {
+  /** Adjusted unit price × quantity (cost total after expense distribution). */
+  adjustedTotal: number;
+  /** adjustedTotal converted to sell currency. */
+  adjustedTotalConverted: number;
+  /** Reference price at global margin incl MWST, converted. */
+  richtpreis: number;
+  /** Final display price (user override or richtpreis). */
+  endpreis: number;
+  /** Sell price per unit excl MWST, converted. */
+  sellPriceConverted: number;
+  /** Sell total excl MWST, converted. */
+  sellTotalConverted: number;
+  /** Sell total incl MWST, converted. */
+  sellTotalInclConverted: number;
+  /** Profit per unit, converted. */
+  profitPerUnit: number;
+  /** Total profit, converted. */
+  profitTotal: number;
+}
+
+/**
+ * Compute all per-row display values for a single line item.
+ *
+ * @param calc            The LineItemCalc for this row.
+ * @param adjustedUnitPrice  Cost base after expense distribution.
+ * @param quantity        Item quantity.
+ * @param globalMargin    The global margin percentage.
+ * @param mwstRate        Effective MWST rate for this item.
+ * @param rate            Currency conversion rate (1 if no conversion needed).
+ * @param finalPriceOverride  User-set final price (incl MWST, in sell currency), or null.
+ */
+export function calcColumnValues(
+  calc: LineItemCalc,
+  adjustedUnitPrice: number,
+  quantity: number,
+  globalMargin: number,
+  mwstRate: number,
+  rate: number,
+  finalPriceOverride: number | null | undefined
+): ColumnValues {
+  const adjustedTotal = adjustedUnitPrice * quantity;
+  const adjustedTotalConverted = adjustedTotal * rate;
+  const richtpreis = calcSellPrice(adjustedUnitPrice, globalMargin) * (1 + mwstRate / 100) * rate;
+  const endpreis = finalPriceOverride != null ? finalPriceOverride : richtpreis;
+
+  return {
+    adjustedTotal,
+    adjustedTotalConverted,
+    richtpreis,
+    endpreis,
+    sellPriceConverted: calc.sellPrice * rate,
+    sellTotalConverted: calc.sellTotal * rate,
+    sellTotalInclConverted: calc.sellTotalInclMwst * rate,
+    profitPerUnit: (quantity > 0 ? calc.profit / quantity : 0) * rate,
+    profitTotal: calc.profit * rate,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Invoice-level totals converted to sell currency
+// ---------------------------------------------------------------------------
+
+export interface InvoiceTotalsConverted {
+  sellExcl: number;
+  mwst: number;
+  sellIncl: number;
+  profit: number;
+}
+
+/**
+ * Convert invoice totals to the sell currency.
+ */
+export function calcTotalsConverted(totals: InvoiceTotals, rate: number): InvoiceTotalsConverted {
+  return {
+    sellExcl: totals.sellExcl * rate,
+    mwst: totals.mwst * rate,
+    sellIncl: totals.sellIncl * rate,
+    profit: totals.profit * rate,
+  };
+}
+
+/**
+ * Calculate the profit margin percentage from final profit and sell total.
+ */
+export function calcMarginPct(finalProfitCHF: number, sellIncl: number): number {
+  return sellIncl > 0 ? (finalProfitCHF / sellIncl) * 100 : 0;
+}
+
+// ---------------------------------------------------------------------------
 // Helpers for resolving per-item overrides
 // ---------------------------------------------------------------------------
 

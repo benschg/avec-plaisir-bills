@@ -29,8 +29,9 @@ import {
   calcLineItem,
   calcInvoiceTotals,
   calcExpenseDistribution,
-  calcSellPrice,
   calcMarginFromFinalPrice,
+  calcColumnValues,
+  calcTotalsConverted,
   resolveMwst,
 } from "@/lib/pricing";
 
@@ -123,9 +124,11 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
   const settingsCallbackRef = useRef(onSettingsChange);
   useEffect(() => { settingsCallbackRef.current = onSettingsChange; });
 
-  const mountedRef = useRef(false);
+  const prevSettingsRef = useRef(JSON.stringify({ globalMargin, globalMwst, exchangeRate, itemFinalPrices, itemMwst }));
   useEffect(() => {
-    if (!mountedRef.current) { mountedRef.current = true; return; }
+    const current = JSON.stringify({ globalMargin, globalMwst, exchangeRate, itemFinalPrices, itemMwst });
+    if (current === prevSettingsRef.current) return;
+    prevSettingsRef.current = current;
     settingsCallbackRef.current?.({ globalMargin, globalMwst, exchangeRate, itemFinalPrices, itemMwst });
   }, [globalMargin, globalMwst, exchangeRate, itemFinalPrices, itemMwst]);
 
@@ -185,10 +188,17 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
     return calcLineItem(item, margin, mwstRate, adjustedUnitPrice);
   });
 
+  const colValues = data.line_items.map((item, i) => {
+    const mwstRate = resolveMwst(i, itemMwst, globalMwst);
+    const adjustedUnitPrice = expenseDist.adjustedUnitPriceByIndex[i];
+    return calcColumnValues(lineCalcs[i], adjustedUnitPrice, item.quantity, globalMargin, mwstRate, rate, itemFinalPrices[i]);
+  });
+
   const totals = calcInvoiceTotals(lineCalcs, expenseFlags);
+  const totalsC = calcTotalsConverted(totals, rate);
   // Final profit in CHF: additional expenses are distributed into sell prices but represent a real
   // external cost, so they must also be deducted from profit to get the true economic margin.
-  const finalProfitCHF = totals.profit * rate - addlExpCHF;
+  const finalProfitCHF = totalsC.profit - addlExpCHF;
 
   const adjustedTotalSum = data.line_items.reduce((sum, item, i) => {
     if (expenseFlags[i]) return sum;
@@ -208,14 +218,14 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
     billExpensesTotal,
     addlExpCHF,
     adjustedTotalOrigCurrency: adjustedTotalSum,
-    sellExcl: totals.sellExcl * rate,
-    mwst: totals.mwst * rate,
-    sellIncl: totals.sellIncl * rate,
-    profit: totals.profit * rate,
+    sellExcl: totalsC.sellExcl,
+    mwst: totalsC.mwst,
+    sellIncl: totalsC.sellIncl,
+    profit: totalsC.profit,
     finalProfitCHF,
   }), [data.currency, data.subtotal, data.tax_amount, data.total, needsConversion, rate,
       billExpensesTotal, addlExpCHF, adjustedTotalSum,
-      totals.sellExcl, totals.mwst, totals.sellIncl, totals.profit, finalProfitCHF]);
+      totalsC.sellExcl, totalsC.mwst, totalsC.sellIncl, totalsC.profit, finalProfitCHF]);
 
   useEffect(() => { summaryCallbackRef.current?.(summary); }, [summary]);
 
@@ -435,12 +445,10 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                   return null;
                 }
                 const calc = lineCalcs[index];
+                const cv = colValues[index];
                 const isExpense = expenseFlags[index];
                 const hasFinalPriceOverride = itemFinalPrices[index] != null;
                 const hasMwstOverride = itemMwst[index] != null;
-                const mwstRate = resolveMwst(index, itemMwst, globalMwst);
-                const adjustedUnitPrice = expenseDist.adjustedUnitPriceByIndex[index];
-                const richtpreis = calcSellPrice(adjustedUnitPrice, globalMargin) * (1 + mwstRate / 100) * rate;
                 const stickyBg = isExpense
                   ? "bg-amber-50 dark:bg-amber-950"
                   : "bg-background";
@@ -489,7 +497,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                         <span className="text-muted-foreground">--</span>
                       ) : (
                         <span className="font-medium text-orange-600 dark:text-orange-400">
-                          {fmt(expenseDist.adjustedUnitPriceByIndex[index] * item.quantity, sign)}
+                          {fmt(cv.adjustedTotal, sign)}
                         </span>
                       )}
                     </TableCell>
@@ -499,7 +507,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                           <span className="text-muted-foreground">--</span>
                         ) : (
                           <span className="font-medium text-orange-600 dark:text-orange-400">
-                            {fmt(expenseDist.adjustedUnitPriceByIndex[index] * item.quantity * rate, sellSign)}
+                            {fmt(cv.adjustedTotalConverted, sellSign)}
                           </span>
                         )}
                       </TableCell>
@@ -510,7 +518,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                     </TableCell>
                     {/* Richtpreis — calculated price at global margin incl MwSt (reference) */}
                     <TableCell className="text-right font-medium text-muted-foreground no-print">
-                      {isExpense ? "--" : fmt(richtpreis, sellSign)}
+                      {isExpense ? "--" : fmt(cv.richtpreis, sellSign)}
                     </TableCell>
                     {/* Endpreis — editable final unit price incl MwSt */}
                     <TableCell className="text-right">
@@ -519,12 +527,12 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                       ) : (
                         <>
                           <span className="hidden print-only">
-                            {fmt(hasFinalPriceOverride ? itemFinalPrices[index]! : richtpreis, sellSign)}
+                            {fmt(cv.endpreis, sellSign)}
                           </span>
                           <Input
                             type="number"
                             value={hasFinalPriceOverride ? itemFinalPrices[index]! : ""}
-                            placeholder={fmt(richtpreis, "")}
+                            placeholder={fmt(cv.richtpreis, "")}
                             onChange={(e) => handleItemFinalPriceChange(index, e.target.value)}
                             className="w-24 h-7 text-right text-sm ml-auto no-print"
                             min={0}
@@ -561,23 +569,23 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                     </TableCell>
                     {/* Verkauf — sell price excl MwSt */}
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400 no-print">
-                      {isExpense ? "--" : fmt(calc.sellPrice * rate, sellSign)}
+                      {isExpense ? "--" : fmt(cv.sellPriceConverted, sellSign)}
                     </TableCell>
                     {/* Verk. Gesamt — sell total excl MwSt */}
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400 no-print">
-                      {isExpense ? "--" : fmt(calc.sellTotal * rate, sellSign)}
+                      {isExpense ? "--" : fmt(cv.sellTotalConverted, sellSign)}
                     </TableCell>
                     {/* Ges. inkl. — total incl MwSt */}
                     <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
-                      {isExpense ? "--" : fmt(calc.sellTotalInclMwst * rate, sellSign)}
+                      {isExpense ? "--" : fmt(cv.sellTotalInclConverted, sellSign)}
                     </TableCell>
                     {/* Gewinn per unit */}
                     <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400 no-print">
-                      {isExpense ? "--" : fmt((item.quantity > 0 ? calc.profit / item.quantity : 0) * rate, sellSign)}
+                      {isExpense ? "--" : fmt(cv.profitPerUnit, sellSign)}
                     </TableCell>
                     {/* Gew. Gesamt */}
                     <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400 no-print">
-                      {isExpense ? "--" : fmt(calc.profit * rate, sellSign)}
+                      {isExpense ? "--" : fmt(cv.profitTotal, sellSign)}
                     </TableCell>
                   </TableRow>
                 );
@@ -594,10 +602,10 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 {needsConversion && <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum * rate, sellSign)}</TableCell>}
                 <TableCell colSpan={4} />
                 <TableCell />
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellExcl * rate, sellSign)}</TableCell>
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellIncl * rate, sellSign)}</TableCell>
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totalsC.sellExcl, sellSign)}</TableCell>
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totalsC.sellIncl, sellSign)}</TableCell>
                 <TableCell />
-                <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmt(totals.profit * rate, sellSign)}</TableCell>
+                <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmt(totalsC.profit, sellSign)}</TableCell>
               </TableRow>
               <TableRow className="no-print">
                 <TableCell colSpan={stickyColSpan} className="sticky left-0 z-20 bg-muted overflow-hidden truncate">MWST</TableCell>
@@ -607,7 +615,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 <TableCell />
                 {needsConversion && <TableCell />}
                 <TableCell colSpan={6} />
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.mwst * rate, sellSign)}</TableCell>
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totalsC.mwst, sellSign)}</TableCell>
                 <TableCell colSpan={2} />
               </TableRow>
               <TableRow className="font-bold no-print">
@@ -619,26 +627,26 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
                 {needsConversion && <TableCell className="text-right text-orange-600 dark:text-orange-400">{fmt(adjustedTotalSum * rate, sellSign)}</TableCell>}
                 <TableCell colSpan={4} />
                 <TableCell />
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellExcl * rate, sellSign)}</TableCell>
-                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totals.sellIncl * rate, sellSign)}</TableCell>
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totalsC.sellExcl, sellSign)}</TableCell>
+                <TableCell className="text-right text-blue-600 dark:text-blue-400">{fmt(totalsC.sellIncl, sellSign)}</TableCell>
                 <TableCell />
-                <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmt(totals.profit * rate, sellSign)}</TableCell>
+                <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmt(totalsC.profit, sellSign)}</TableCell>
               </TableRow>
               {/* Print-only footer rows — matches print columns: Beschreibung, Menge, Endpreis, MWST, Ges.inkl. */}
               <TableRow className="hidden print-only-row">
                 <TableCell colSpan={3}>Netto (exkl. MWST)</TableCell>
                 <TableCell />
-                <TableCell className="text-right font-medium">{fmt(totals.sellExcl * rate, sellSign)}</TableCell>
+                <TableCell className="text-right font-medium">{fmt(totalsC.sellExcl, sellSign)}</TableCell>
               </TableRow>
               <TableRow className="hidden print-only-row">
                 <TableCell colSpan={3}>MWST</TableCell>
                 <TableCell />
-                <TableCell className="text-right">{fmt(totals.mwst * rate, sellSign)}</TableCell>
+                <TableCell className="text-right">{fmt(totalsC.mwst, sellSign)}</TableCell>
               </TableRow>
               <TableRow className="hidden print-only-row font-bold">
                 <TableCell colSpan={3}>Gesamt inkl. MWST</TableCell>
                 <TableCell />
-                <TableCell className="text-right">{fmt(totals.sellIncl * rate, sellSign)}</TableCell>
+                <TableCell className="text-right">{fmt(totalsC.sellIncl, sellSign)}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>

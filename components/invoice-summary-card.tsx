@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { InvoiceSummary } from "@/components/invoice-table";
+import { calcMarginPct } from "@/lib/pricing";
 
 function fmt(amount: number, currency: string) {
   return `${amount.toFixed(2)} ${currency}`;
@@ -50,7 +51,7 @@ export function InvoiceSummaryCard({ summary }: Props) {
   const sign = currency;
   const chf = "CHF";
   const hasExpenses = billExpensesTotal > 0 || addlExpCHF > 0;
-  const marginPct = sellIncl > 0 ? (finalProfitCHF / sellIncl) * 100 : 0;
+  const marginPct = calcMarginPct(finalProfitCHF, sellIncl);
 
   return (
     <Card>
