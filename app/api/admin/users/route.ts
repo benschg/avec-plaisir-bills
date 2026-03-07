@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
 
   const { email, role } = await request.json();
 
-  if (!email || !role || !["admin", "editor", "viewer", "no_access"].includes(role)) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email) || email.length > 254 || !role || !["admin", "editor", "viewer", "no_access"].includes(role)) {
     return NextResponse.json(
       { success: false, error: "Ungültige E-Mail oder Rolle" },
       { status: 400 }
