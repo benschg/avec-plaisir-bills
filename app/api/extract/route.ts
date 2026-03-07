@@ -17,8 +17,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Reject files larger than 10 MB (base64 ≈ 1.37x raw size)
+    const MAX_BASE64_LENGTH = 14_000_000;
+    if (typeof file !== "string" || file.length > MAX_BASE64_LENGTH) {
+      return NextResponse.json(
+        { success: false, error: "Datei zu gross (max. 10 MB)" },
+        { status: 413 }
+      );
+    }
+
     // Validate PDF magic bytes (%PDF = JVBERi in base64)
-    if (typeof file !== "string" || !file.startsWith("JVBERi")) {
+    if (!file.startsWith("JVBERi")) {
       return NextResponse.json(
         { success: false, error: "Ungültige Datei: kein PDF" },
         { status: 400 }

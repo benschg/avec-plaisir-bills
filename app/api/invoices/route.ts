@@ -12,6 +12,15 @@ export async function POST(request: NextRequest) {
   try {
     const { fileName, data, fileBase64 } = await request.json();
 
+    // Reject files larger than 10 MB
+    const MAX_BASE64_LENGTH = 14_000_000;
+    if (typeof fileBase64 === "string" && fileBase64.length > MAX_BASE64_LENGTH) {
+      return NextResponse.json(
+        { success: false, error: "Datei zu gross (max. 10 MB)" },
+        { status: 413 }
+      );
+    }
+
     // 1. Upsert vendor (reuse existing by name+address)
     const [existingVendor] = await db
       .select({ id: vendors.id })
