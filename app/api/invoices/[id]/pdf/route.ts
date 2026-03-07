@@ -2,11 +2,15 @@ import { db, invoices } from "@/lib/db";
 import { downloadFile } from "@/lib/storage";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/auth/role";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireRole("viewer");
+  if (denied) return denied;
+
   try {
     const { id } = await params;
     const download = request.nextUrl.searchParams.has("download");
