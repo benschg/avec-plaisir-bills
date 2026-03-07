@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
       })
       .returning({ id: invoices.id });
 
-    // 4. Upload original PDF to Vercel Blob
-    if (fileBase64) {
+    // 4. Upload original PDF to Vercel Blob (validate PDF magic bytes)
+    if (fileBase64 && typeof fileBase64 === "string" && fileBase64.startsWith("JVBERi")) {
       const filePath = `${invoice.id}/${sanitizeFileName(fileName)}`;
       const buffer = Buffer.from(fileBase64, "base64");
 

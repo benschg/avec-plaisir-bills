@@ -17,6 +17,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate PDF magic bytes (%PDF = JVBERi in base64)
+    if (typeof file !== "string" || !file.startsWith("JVBERi")) {
+      return NextResponse.json(
+        { success: false, error: "Ungültige Datei: kein PDF" },
+        { status: 400 }
+      );
+    }
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",

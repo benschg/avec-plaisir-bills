@@ -159,6 +159,22 @@ describe("Security: Input validation", () => {
   });
 });
 
+describe("Security: PDF file validation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRequireRole.mockResolvedValue(null);
+    vi.stubEnv("GEMINI_API_KEY", "test-key");
+  });
+
+  it("rejects non-PDF files on extract", async () => {
+    const { POST } = await import("@/app/api/extract/route");
+    const res = await POST(makeRequest("POST", { file: "notapdf", fileName: "test.txt" }) as never);
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body.error).toContain("PDF");
+  });
+});
+
 describe("Security: Filename sanitization", () => {
   it("strips path traversal from upload filename", async () => {
     const { sanitizeFileName } = await vi.importActual<typeof import("@/lib/storage")>("@/lib/storage");
