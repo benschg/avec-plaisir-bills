@@ -119,6 +119,7 @@ function InvoiceDetailContent() {
   const [deleting, setDeleting] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
 
   useEffect(() => {
     fetch(`/api/invoices/${params.id}`)
@@ -204,7 +205,7 @@ function InvoiceDetailContent() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ expense_flags: flags }),
-        });
+        }).then((r) => { if (r.ok) setSavedAt(new Date()); });
       }, 500);
     },
     [params.id]
@@ -225,7 +226,7 @@ function InvoiceDetailContent() {
             item_final_prices: settings.itemFinalPrices,
             item_mwst: settings.itemMwst,
           }),
-        });
+        }).then((r) => { if (r.ok) setSavedAt(new Date()); });
       }, 500);
     },
     [params.id]
@@ -293,7 +294,7 @@ function InvoiceDetailContent() {
                       method: "PATCH",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ invoice_number: trimmed }),
-                    }).then(() => setInvoice((prev) => prev ? { ...prev, invoice_number: trimmed } : prev));
+                    }).then((r) => { if (r.ok) { setSavedAt(new Date()); setInvoice((prev) => prev ? { ...prev, invoice_number: trimmed } : prev); } });
                   }
                   setEditingTitle(false);
                 }}
@@ -312,7 +313,7 @@ function InvoiceDetailContent() {
                 Rechnung {invoice.invoice_number}
               </h1>
             )}
-            <span className="text-muted-foreground text-sm" title={new Date(invoice.updated_at).toLocaleString()}>Gespeichert {timeAgo(new Date(invoice.updated_at))}</span>
+            <span className="text-muted-foreground text-sm" title={(savedAt ?? new Date(invoice.updated_at)).toLocaleString()}>Gespeichert {timeAgo(savedAt ?? new Date(invoice.updated_at))}</span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
             <span>{invoice.file_name}</span>
