@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { invoices } from "@/lib/db/schema";
+import { invoices, line_items } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/role";
@@ -72,15 +72,30 @@ export async function PATCH(
       if (key in body) updates[key] = body[key];
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates).length === 0 && !Array.isArray(body.expense_flags)) {
       return NextResponse.json({ success: false, error: "No valid fields to update" }, { status: 400 });
+    }
+
+    // Persist expense flags on individual line items
+    if (Array.isArray(body.expense_flags)) {
+      const items = await db.query.line_items.findMany({
+        where: eq(line_items.invoice_id, id),
+      });
+      for (let i = 0; i < items.length && i < body.expense_flags.length; i++) {
+        const flag = !!body.expense_flags[i];
+        if (items[i].is_expense !== flag) {
+          await db.update(line_items).set({ is_expense: flag }).where(eq(line_items.id, items[i].id));
+        }
+      }
     }
 
     // Convert numbers to strings for numeric columns
     if (updates.global_margin != null) updates.global_margin = String(updates.global_margin);
     if (updates.exchange_rate != null) updates.exchange_rate = String(updates.exchange_rate);
 
-    updates.updated_at = new Date();
+    if (Object.keys(updates).length > 0 || Array.isArray(body.expense_flags)) {
+      updates.updated_at = new Date();
+    }
     await db.update(invoices).set(updates).where(eq(invoices.id, id));
 
     return NextResponse.json({ success: true });

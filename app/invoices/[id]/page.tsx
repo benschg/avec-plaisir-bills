@@ -195,6 +195,21 @@ function InvoiceDetailContent() {
     [params.id, additionalExpenses]
   );
 
+  const expenseFlagTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const saveExpenseFlags = useCallback(
+    (flags: boolean[]) => {
+      clearTimeout(expenseFlagTimerRef.current);
+      expenseFlagTimerRef.current = setTimeout(() => {
+        fetch(`/api/invoices/${params.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expense_flags: flags }),
+        });
+      }, 500);
+    },
+    [params.id]
+  );
+
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const handleSettingsChange = useCallback(
     (settings: CalcSettings) => {
@@ -364,7 +379,7 @@ function InvoiceDetailContent() {
         data={data}
         additionalExpenses={additionalExpenses}
         expenseFlags={expenseFlags}
-        onExpenseToggle={(i) => setExpenseFlags((prev) => { const next = [...prev]; next[i] = !next[i]; return next; })}
+        onExpenseToggle={(i) => setExpenseFlags((prev) => { const next = [...prev]; next[i] = !next[i]; saveExpenseFlags(next); return next; })}
         onSummaryChange={setSummary}
         initialSettings={{
           globalMargin: invoice.global_margin ?? 100,
