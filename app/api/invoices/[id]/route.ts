@@ -19,6 +19,9 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireRole("viewer");
+  if (denied) return denied;
+
   try {
     const { id } = await params;
 
