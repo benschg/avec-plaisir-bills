@@ -18,6 +18,7 @@ export async function uploadFile(
 
 export async function downloadFile(url: string): Promise<Buffer> {
   const result = await get(url, { access: "private" });
+  if (!result?.stream) throw new Error("Blob not found");
   const reader = result.stream.getReader();
   const chunks: Uint8Array[] = [];
   for (;;) {
