@@ -7,11 +7,12 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
 
   try {
-    const { file, fileName, apiKey } = await request.json();
+    const { file, fileName } = await request.json();
 
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!file || !apiKey) {
       return NextResponse.json(
-        { success: false, error: "Missing file data or API key" },
+        { success: false, error: apiKey ? "Missing file data" : "GEMINI_API_KEY not configured" },
         { status: 400 }
       );
     }

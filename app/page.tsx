@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { ApiKeyInput } from "@/components/api-key-input";
 import { FilePicker } from "@/components/file-picker";
 import { RequireAuth } from "@/components/require-auth";
 
@@ -19,24 +18,9 @@ export default function Home() {
 
 function HomeContent() {
   const router = useRouter();
-  const [apiKey, setApiKey] = useState("");
   const [selectedFile, setSelectedFile] = useState<{ base64: string; name: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const stored = sessionStorage.getItem("gemini-api-key");
-    if (stored) setApiKey(stored);
-  }, []);
-
-  const handleApiKeyChange = useCallback((key: string) => {
-    setApiKey(key);
-    if (key) {
-      sessionStorage.setItem("gemini-api-key", key);
-    } else {
-      sessionStorage.removeItem("gemini-api-key");
-    }
-  }, []);
 
   const handleFileSelect = useCallback((file: { base64: string; name: string }) => {
     setSelectedFile(file);
@@ -44,7 +28,7 @@ function HomeContent() {
   }, []);
 
   const handleExtract = async () => {
-    if (!apiKey || !selectedFile) return;
+    if (!selectedFile) return;
 
     setLoading(true);
     setError(null);
@@ -57,7 +41,6 @@ function HomeContent() {
         body: JSON.stringify({
           file: selectedFile.base64,
           fileName: selectedFile.name,
-          apiKey,
         }),
       });
 
@@ -109,13 +92,11 @@ function HomeContent() {
 
         <Separator />
 
-        <ApiKeyInput apiKey={apiKey} onApiKeyChange={handleApiKeyChange} />
-
         <FilePicker onFileSelect={handleFileSelect} selectedFileName={selectedFile?.name} />
 
         <Button
           onClick={handleExtract}
-          disabled={!apiKey || !selectedFile || loading}
+          disabled={!selectedFile || loading}
           className="w-full"
           size="lg"
         >
