@@ -33,7 +33,7 @@ export async function GET(
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${invoice.file_name}"`,
+        "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${invoice.file_name.replace(/["\r\n]/g, "")}"`,
       },
     });
   } catch (error: unknown) {
