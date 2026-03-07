@@ -147,6 +147,9 @@ export async function POST(request: NextRequest) {
 
 // List saved invoices with vendor name via join
 export async function GET() {
+  const denied = await requireRole("viewer");
+  if (denied) return denied;
+
   try {
     const data = await db.query.invoices.findMany({
       columns: {
