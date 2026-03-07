@@ -1,5 +1,5 @@
 import { db, vendors, customers, invoices, line_items, payment_info } from "@/lib/db";
-import { uploadFile } from "@/lib/storage";
+import { uploadFile, sanitizeFileName } from "@/lib/storage";
 import { eq, and, desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/role";
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Upload original PDF to Vercel Blob
     if (fileBase64) {
-      const filePath = `${invoice.id}/${fileName}`;
+      const filePath = `${invoice.id}/${sanitizeFileName(fileName)}`;
       const buffer = Buffer.from(fileBase64, "base64");
 
       try {

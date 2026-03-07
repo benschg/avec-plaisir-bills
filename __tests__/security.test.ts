@@ -161,7 +161,7 @@ describe("Security: Input validation", () => {
 
 describe("Security: Filename sanitization", () => {
   it("strips path traversal from upload filename", async () => {
-    const { sanitizeFileName } = await import("@/lib/storage");
+    const { sanitizeFileName } = await vi.importActual<typeof import("@/lib/storage")>("@/lib/storage");
     expect(sanitizeFileName("../../etc/passwd")).toBe("passwd");
     expect(sanitizeFileName("normal.pdf")).toBe("normal.pdf");
     expect(sanitizeFileName("path/to/file.pdf")).toBe("file.pdf");

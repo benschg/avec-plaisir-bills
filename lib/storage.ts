@@ -1,5 +1,10 @@
 import { put, del, get } from "@vercel/blob";
 
+export function sanitizeFileName(name: string): string {
+  // Strip directory traversal and path separators
+  return name.replace(/^.*[/\\]/, "").replace(/\.\./g, "");
+}
+
 export async function uploadFile(
   fileName: string,
   buffer: Buffer
