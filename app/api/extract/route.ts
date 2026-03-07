@@ -1,10 +1,19 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth/role";
+import { requireRole, getSessionEmail } from "@/lib/auth/role";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   const denied = await requireRole("editor");
   if (denied) return denied;
+
+  const email = await getSessionEmail();
+  if (rateLimit(`extract:${email}`, 20, 60_000)) {
+    return NextResponse.json(
+      { success: false, error: "Zu viele Anfragen. Bitte warten." },
+      { status: 429 }
+    );
+  }
 
   try {
     const { file, fileName } = await request.json();

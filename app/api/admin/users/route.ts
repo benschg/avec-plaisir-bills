@@ -2,11 +2,17 @@ import { db } from "@/lib/db";
 import { app_users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth/role";
+import { requireRole, getSessionEmail } from "@/lib/auth/role";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET() {
   const denied = await requireRole("admin");
   if (denied) return denied;
+
+  const email = await getSessionEmail();
+  if (rateLimit(`admin:${email}`, 30, 60_000)) {
+    return NextResponse.json({ success: false, error: "Zu viele Anfragen" }, { status: 429 });
+  }
 
   const users = await db
     .select()
