@@ -1,23 +1,26 @@
-import { put, del } from "@vercel/blob";
+import { put, del, get } from "@vercel/blob";
 
 export async function uploadFile(
   fileName: string,
   buffer: Buffer
 ): Promise<string> {
   const blob = await put(fileName, buffer, {
-    access: "public",
+    access: "private",
     contentType: "application/pdf",
   });
   return blob.url;
 }
 
 export async function downloadFile(url: string): Promise<Buffer> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to download file: ${response.statusText}`);
+  const result = await get(url, { access: "private" });
+  const reader = result.stream.getReader();
+  const chunks: Uint8Array[] = [];
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
   }
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  return Buffer.concat(chunks);
 }
 
 export async function deleteFile(url: string): Promise<void> {

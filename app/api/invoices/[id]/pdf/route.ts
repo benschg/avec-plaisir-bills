@@ -4,11 +4,12 @@ import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    const download = request.nextUrl.searchParams.has("download");
 
     const [invoice] = await db
       .select({ file_path: invoices.file_path, file_name: invoices.file_name })
@@ -28,7 +29,7 @@ export async function GET(
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${invoice.file_name}"`,
+        "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${invoice.file_name}"`,
       },
     });
   } catch (error: unknown) {

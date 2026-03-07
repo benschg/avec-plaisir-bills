@@ -22,7 +22,7 @@ import { AdditionalExpensesCard } from "@/components/additional-expenses-card";
 import type { AdditionalExpense } from "@/components/additional-expenses-card";
 import type { InvoiceData } from "@/lib/types";
 import { RequireAuth } from "@/components/require-auth";
-import { Trash2, Printer } from "lucide-react";
+import { Trash2, Printer, Eye, Download } from "lucide-react";
 import type {
   InvoiceRow,
   LineItemRow,
@@ -281,21 +281,25 @@ function InvoiceDetailContent() {
               Rechnung {invoice.invoice_number}
             </h1>
           )}
-          <p className="text-muted-foreground text-sm mt-1">
-            {invoice.file_name} &middot; Gespeichert {new Date(invoice.created_at).toLocaleDateString()}
-          </p>
+          <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
+            <span>{invoice.file_name}</span>
+            <Button asChild variant="ghost" size="icon" className="h-5 w-5 no-print" title="PDF ansehen" disabled={!invoice.file_path}>
+              <a href={invoice.file_path ? `/api/invoices/${params.id}/pdf` : undefined} target="_blank" rel="noopener noreferrer">
+                <Eye className="h-3 w-3" />
+              </a>
+            </Button>
+            <Button asChild variant="ghost" size="icon" className="h-5 w-5 no-print" title="PDF herunterladen" disabled={!invoice.file_path}>
+              <a href={invoice.file_path ? `/api/invoices/${params.id}/pdf?download=1` : undefined} download={invoice.file_name}>
+                <Download className="h-3 w-3" />
+              </a>
+            </Button>
+            <span>&middot; Gespeichert {new Date(invoice.created_at).toLocaleDateString()}</span>
+          </div>
         </div>
         <div className="flex items-center gap-2 no-print">
           <Button variant="outline" size="icon" onClick={() => window.print()} title="Drucken">
             <Printer className="h-4 w-4" />
           </Button>
-          {invoice.file_path && (
-            <Button asChild variant="outline">
-              <a href={`/api/invoices/${params.id}/pdf`} target="_blank" rel="noopener noreferrer">
-                PDF ansehen
-              </a>
-            </Button>
-          )}
           <Button variant="destructive" size="icon" onClick={() => setDeleteOpen(true)} title="Rechnung löschen">
             <Trash2 className="h-4 w-4" />
           </Button>

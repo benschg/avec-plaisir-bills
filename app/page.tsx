@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,6 +26,15 @@ function HomeContent() {
     setSelectedFile(file);
     setError(null);
   }, []);
+
+  const pdfUrl = useMemo(() => {
+    if (!selectedFile) return null;
+    const bytes = atob(selectedFile.base64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: "application/pdf" });
+    return URL.createObjectURL(blob);
+  }, [selectedFile]);
 
   const handleExtract = async () => {
     if (!selectedFile) return;
@@ -77,59 +86,72 @@ function HomeContent() {
   };
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.png" alt="" width={56} height={56} className="rounded-lg" />
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Rechnungsdaten-Extraktor</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              PDF-Rechnung hochladen und strukturierte Daten mit Google Gemini KI extrahieren
-            </p>
+    <main className="flex flex-col h-[calc(100vh-3.5rem)] bg-background">
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+          <div className="flex items-center gap-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon.png" alt="" width={56} height={56} className="rounded-lg" />
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Rechnungsdaten-Extraktor</h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                PDF-Rechnung hochladen und strukturierte Daten mit Google Gemini KI extrahieren
+              </p>
+            </div>
           </div>
-        </div>
 
-        <Separator />
+          <Separator />
 
-        <FilePicker onFileSelect={handleFileSelect} selectedFileName={selectedFile?.name} />
+          <FilePicker onFileSelect={handleFileSelect} selectedFileName={selectedFile?.name} />
 
-        <Button
-          onClick={handleExtract}
-          disabled={!selectedFile || loading}
-          className="w-full"
-          size="lg"
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
-              Extrahiere & speichere...
-            </span>
-          ) : (
-            "Rechnungsdaten extrahieren"
+          {pdfUrl && (
+            <iframe
+              src={pdfUrl}
+              className="w-full h-[70vh] rounded-lg border"
+              title="PDF-Vorschau"
+            />
           )}
-        </Button>
+        </div>
+      </div>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+      <div className="border-t bg-background px-4 py-3">
+        <div className="max-w-5xl mx-auto space-y-3">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <Button
+            onClick={handleExtract}
+            disabled={!selectedFile || loading}
+            className="w-full"
+            size="lg"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+                Extrahiere & speichere...
+              </span>
+            ) : (
+              "Rechnungsdaten extrahieren"
+            )}
+          </Button>
+        </div>
       </div>
     </main>
   );

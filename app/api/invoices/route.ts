@@ -88,8 +88,8 @@ export async function POST(request: NextRequest) {
           .update(invoices)
           .set({ file_path: blobUrl })
           .where(eq(invoices.id, invoice.id));
-      } catch {
-        // PDF upload is non-critical, continue without it
+      } catch (uploadErr) {
+        console.error("[invoices] PDF upload failed:", uploadErr);
       }
     }
 
