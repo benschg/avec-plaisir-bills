@@ -74,6 +74,9 @@ export const invoices = pgTable(
     created_at: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     index("idx_invoices_invoice_number").on(table.invoice_number),

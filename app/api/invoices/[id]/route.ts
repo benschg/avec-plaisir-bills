@@ -80,6 +80,7 @@ export async function PATCH(
     if (updates.global_margin != null) updates.global_margin = String(updates.global_margin);
     if (updates.exchange_rate != null) updates.exchange_rate = String(updates.exchange_rate);
 
+    updates.updated_at = new Date();
     await db.update(invoices).set(updates).where(eq(invoices.id, id));
 
     return NextResponse.json({ success: true });

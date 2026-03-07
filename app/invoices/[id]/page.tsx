@@ -40,6 +40,21 @@ type FullInvoice = InvoiceRow & {
   additional_expenses: AdditionalExpenseRow[];
 };
 
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "gerade eben";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `vor ${minutes} ${minutes === 1 ? "Minute" : "Minuten"}`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `vor ${hours} ${hours === 1 ? "Stunde" : "Stunden"}`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `vor ${days} ${days === 1 ? "Tag" : "Tagen"}`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `vor ${months} ${months === 1 ? "Monat" : "Monaten"}`;
+  const years = Math.floor(months / 12);
+  return `vor ${years} ${years === 1 ? "Jahr" : "Jahren"}`;
+}
+
 function toInvoiceData(inv: FullInvoice): InvoiceData {
   return {
     vendor: {
@@ -250,37 +265,40 @@ function InvoiceDetailContent() {
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          {editingTitle ? (
-            <Input
-              autoFocus
-              value={titleDraft}
-              onChange={(e) => setTitleDraft(e.target.value)}
-              onBlur={() => {
-                const trimmed = titleDraft.trim();
-                if (trimmed && trimmed !== invoice.invoice_number) {
-                  fetch(`/api/invoices/${params.id}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ invoice_number: trimmed }),
-                  }).then(() => setInvoice((prev) => prev ? { ...prev, invoice_number: trimmed } : prev));
-                }
-                setEditingTitle(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                if (e.key === "Escape") setEditingTitle(false);
-              }}
-              className="text-2xl font-bold tracking-tight h-auto py-0 px-1 -ml-1 border-none shadow-none focus-visible:ring-1"
-            />
-          ) : (
-            <h1
-              className="text-2xl font-bold tracking-tight cursor-pointer hover:text-muted-foreground transition-colors"
-              onClick={() => { setTitleDraft(invoice.invoice_number); setEditingTitle(true); }}
-              title="Klicken zum Bearbeiten"
-            >
-              Rechnung {invoice.invoice_number}
-            </h1>
-          )}
+          <div className="flex items-baseline gap-3">
+            {editingTitle ? (
+              <Input
+                autoFocus
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={() => {
+                  const trimmed = titleDraft.trim();
+                  if (trimmed && trimmed !== invoice.invoice_number) {
+                    fetch(`/api/invoices/${params.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ invoice_number: trimmed }),
+                    }).then(() => setInvoice((prev) => prev ? { ...prev, invoice_number: trimmed } : prev));
+                  }
+                  setEditingTitle(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  if (e.key === "Escape") setEditingTitle(false);
+                }}
+                className="text-2xl font-bold tracking-tight h-auto py-0 px-1 -ml-1 border-none shadow-none focus-visible:ring-1"
+              />
+            ) : (
+              <h1
+                className="text-2xl font-bold tracking-tight cursor-pointer hover:text-muted-foreground transition-colors"
+                onClick={() => { setTitleDraft(invoice.invoice_number); setEditingTitle(true); }}
+                title="Klicken zum Bearbeiten"
+              >
+                Rechnung {invoice.invoice_number}
+              </h1>
+            )}
+            <span className="text-muted-foreground text-sm" title={new Date(invoice.updated_at).toLocaleString()}>Gespeichert {timeAgo(new Date(invoice.updated_at))}</span>
+          </div>
           <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
             <span>{invoice.file_name}</span>
             <Button asChild variant="ghost" size="icon" className="h-5 w-5 no-print" title="PDF ansehen" disabled={!invoice.file_path}>
@@ -293,7 +311,6 @@ function InvoiceDetailContent() {
                 <Download className="h-3 w-3" />
               </a>
             </Button>
-            <span>&middot; Gespeichert {new Date(invoice.created_at).toLocaleDateString()}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 no-print">
