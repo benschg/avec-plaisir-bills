@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   Table,
@@ -38,6 +39,7 @@ function InvoicesContent() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetch("/api/invoices")
@@ -49,8 +51,18 @@ function InvoicesContent() {
       .finally(() => setLoading(false));
   }, []);
 
-  const totalSum = invoices.reduce((sum, inv) => sum + (inv.total ?? 0), 0);
-  const currencies = [...new Set(invoices.map((inv) => inv.currency))];
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return invoices;
+    return invoices.filter(
+      (inv) =>
+        inv.invoice_number?.toLowerCase().includes(q) ||
+        inv.vendors?.name?.toLowerCase().includes(q)
+    );
+  }, [invoices, search]);
+
+  const totalSum = filtered.reduce((sum, inv) => sum + (inv.total ?? 0), 0);
+  const currencies = [...new Set(filtered.map((inv) => inv.currency))];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
@@ -58,8 +70,8 @@ function InvoicesContent() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Rechnungen</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {invoices.length} gespeicherte Rechnung{invoices.length !== 1 && "en"}
-            {invoices.length > 0 && currencies.length === 1 && (
+            {filtered.length}{filtered.length !== invoices.length ? ` / ${invoices.length}` : ""} Rechnung{filtered.length !== 1 && "en"}
+            {filtered.length > 0 && currencies.length === 1 && (
               <> &middot; Gesamt: {totalSum.toFixed(2)} {currencies[0]}</>
             )}
           </p>
@@ -71,9 +83,18 @@ function InvoicesContent() {
 
       <Separator />
 
+      {invoices.length > 0 && (
+        <Input
+          placeholder="Suche nach Rechnung Nr. oder Lieferant..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm"
+        />
+      )}
+
       {loading ? (
         <p className="text-sm text-muted-foreground py-8 text-center">Laden...</p>
-      ) : invoices.length === 0 ? (
+      ) : filtered.length === 0 && !search ? (
         <div className="text-center py-16 space-y-3">
           <p className="text-muted-foreground">Noch keine Rechnungen gespeichert.</p>
           <Button asChild>
@@ -94,7 +115,7 @@ function InvoicesContent() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((inv) => (
+              {filtered.map((inv) => (
                 <TableRow
                   key={inv.id}
                   className="cursor-pointer"

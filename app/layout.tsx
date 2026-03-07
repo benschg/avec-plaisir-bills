@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
-import { NavLinks, AdminSettingsLink } from "@/components/nav-links";
+import { NavLinks } from "@/components/nav-links";
 import { UserButton } from "@/components/user-button";
 import "./globals.css";
 
@@ -41,10 +41,7 @@ export default function RootLayout({
                 </a>
                 <NavLinks />
               </nav>
-              <div className="flex items-center gap-3">
-                <AdminSettingsLink />
-                <UserButton />
-              </div>
+              <UserButton />
             </div>
           </header>
           {children}
