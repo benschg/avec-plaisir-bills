@@ -118,6 +118,7 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
   const [itemFinalPrices, setItemFinalPrices] = useState<Record<number, number | null>>(initialSettings?.itemFinalPrices ?? {});
   const [itemMwst, setItemMwst] = useState<Record<number, string | null>>(initialSettings?.itemMwst ?? {});
   const [descWidth, setDescWidth] = useState(288); // w-72 = 18rem = 288px
+  const [searchFilter, setSearchFilter] = useState("");
 
   const settingsCallbackRef = useRef(onSettingsChange);
   useEffect(() => { settingsCallbackRef.current = onSettingsChange; });
@@ -249,7 +250,16 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
     <Card className="flex flex-col h-screen print-auto">
       <CardHeader className="shrink-0">
         <div className="flex items-center justify-between gap-4">
-          <CardTitle className="text-base">Positionen</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base">Positionen</CardTitle>
+            <Input
+              type="text"
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              placeholder="Suche..."
+              className="w-48 h-7 text-sm no-print"
+            />
+          </div>
           <div className="flex items-center gap-4 no-print">
             {billExpensesTotal > 0 && (
               <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -423,6 +433,11 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
             </TableHeader>
             <TableBody>
               {data.line_items.map((item, index) => {
+                const filterLower = searchFilter.toLowerCase();
+                if (filterLower && !item.description.toLowerCase().includes(filterLower)
+                  && !(item.position != null && String(item.position).includes(filterLower))) {
+                  return null;
+                }
                 const calc = lineCalcs[index];
                 const isExpense = expenseFlags[index];
                 const hasFinalPriceOverride = itemFinalPrices[index] != null;
