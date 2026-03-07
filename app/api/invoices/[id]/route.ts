@@ -66,7 +66,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    const allowed = ["global_margin", "global_mwst", "exchange_rate", "item_final_prices", "item_mwst"] as const;
+    const allowed = ["invoice_number", "global_margin", "global_mwst", "exchange_rate", "item_final_prices", "item_mwst"] as const;
     const updates: Record<string, unknown> = {};
     for (const key of allowed) {
       if (key in body) updates[key] = body[key];

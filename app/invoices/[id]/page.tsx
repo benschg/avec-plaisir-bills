@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
@@ -101,6 +102,8 @@ function InvoiceDetailContent() {
   const [error, setError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
 
   useEffect(() => {
     fetch(`/api/invoices/${params.id}`)
@@ -247,9 +250,37 @@ function InvoiceDetailContent() {
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Rechnung {invoice.invoice_number}
-          </h1>
+          {editingTitle ? (
+            <Input
+              autoFocus
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={() => {
+                const trimmed = titleDraft.trim();
+                if (trimmed && trimmed !== invoice.invoice_number) {
+                  fetch(`/api/invoices/${params.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ invoice_number: trimmed }),
+                  }).then(() => setInvoice((prev) => prev ? { ...prev, invoice_number: trimmed } : prev));
+                }
+                setEditingTitle(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                if (e.key === "Escape") setEditingTitle(false);
+              }}
+              className="text-2xl font-bold tracking-tight h-auto py-0 px-1 -ml-1 border-none shadow-none focus-visible:ring-1"
+            />
+          ) : (
+            <h1
+              className="text-2xl font-bold tracking-tight cursor-pointer hover:text-muted-foreground transition-colors"
+              onClick={() => { setTitleDraft(invoice.invoice_number); setEditingTitle(true); }}
+              title="Klicken zum Bearbeiten"
+            >
+              Rechnung {invoice.invoice_number}
+            </h1>
+          )}
           <p className="text-muted-foreground text-sm mt-1">
             {invoice.file_name} &middot; Gespeichert {new Date(invoice.created_at).toLocaleDateString()}
           </p>

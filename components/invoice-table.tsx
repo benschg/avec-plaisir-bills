@@ -263,40 +263,36 @@ export function InvoiceTable({ data, additionalExpenses = [], expenseFlags, onEx
           <div className="flex items-center gap-4 no-print">
             {billExpensesTotal > 0 && (
               <span className="text-sm text-muted-foreground whitespace-nowrap">
-                Kosten: <span className="font-medium text-amber-600 dark:text-amber-400">{fmt(billExpensesTotal, sign)}</span>
+                Spesen: <span className="font-medium text-amber-600 dark:text-amber-400">{fmt(billExpensesTotal, sign)}</span>
               </span>
             )}
             {needsConversion && (
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1">
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">Invoice Price CHF</span>
-                  <Input
-                    type="number"
-                    value={parseFloat((data.total * exchangeRate).toFixed(2))}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value);
-                      if (!isNaN(v) && v > 0 && data.total > 0) {
-                        setExchangeRate(v / data.total);
-                      }
-                    }}
-                    className="w-24 h-7 text-right text-sm"
-                    step={0.01}
-                  />
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">{data.currency}→CHF</span>
-                  <Input
-                    type="number"
-                    value={exchangeRate}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value);
-                      if (!isNaN(v) && v > 0) setExchangeRate(v);
-                    }}
-                    className="w-24 h-7 text-right text-sm"
-                    min={0.0001}
-                    step={0.0001}
-                  />
-                </div>
+              <div className="grid grid-cols-[auto_6rem] items-center gap-x-2 gap-y-1">
+                <span className="text-sm text-muted-foreground whitespace-nowrap text-right">Invoice Price CHF</span>
+                <Input
+                  type="number"
+                  value={parseFloat((data.total * exchangeRate).toFixed(2))}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v) && v > 0 && data.total > 0) {
+                      setExchangeRate(v / data.total);
+                    }
+                  }}
+                  className="h-7 text-right text-sm"
+                  step={0.01}
+                />
+                <span className="text-sm text-muted-foreground whitespace-nowrap text-right">{data.currency}→CHF</span>
+                <Input
+                  type="number"
+                  value={exchangeRate}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v) && v > 0) setExchangeRate(v);
+                  }}
+                  className="h-7 text-right text-sm"
+                  min={0.0001}
+                  step={0.0001}
+                />
               </div>
             )}
             <div className="flex items-center gap-3">
