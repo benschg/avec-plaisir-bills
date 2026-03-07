@@ -44,8 +44,8 @@ export async function PUT(
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    console.error("[api/expenses]", error);
+    return NextResponse.json({ success: false, error: "Interner Serverfehler" }, { status: 500 });
   }
 }
 
@@ -65,7 +65,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    console.error("[api/expenses]", error);
+    return NextResponse.json({ success: false, error: "Interner Serverfehler" }, { status: 500 });
   }
 }

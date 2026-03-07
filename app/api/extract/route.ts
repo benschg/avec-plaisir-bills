@@ -105,10 +105,9 @@ File: ${fileName}`;
 
     return NextResponse.json({ success: true, data });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error occurred";
-    console.error("Extraction error:", message);
+    console.error("[api/extract]", error);
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: "Extraktion fehlgeschlagen" },
       { status: 500 }
     );
   }

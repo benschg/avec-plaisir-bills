@@ -37,7 +37,7 @@ export async function GET(
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    console.error("[api/invoices/id/pdf]", error);
+    return NextResponse.json({ success: false, error: "Interner Serverfehler" }, { status: 500 });
   }
 }
